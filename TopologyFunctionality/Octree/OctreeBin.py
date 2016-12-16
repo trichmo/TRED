@@ -14,18 +14,22 @@ class OctreeBin(object):
 		
 	def divide(self):
 		for i in range(8):
-			newChild = OctreeBin(self,pts,this.bounds.getChild(i), this.bounds+1)
-			self.chidren.extend(newChild)
+			childBound = self.bounds.getChild(i)
+			#contains = childBound.containsPoints(self.points)
+			#pts=[self.points[idx] for idx in contains]
+			pts=[]
+			newChild = OctreeBin(self,pts,childBound, self.depth+1)
+			self.children.append(newChild)
 		for point in self.points:
 			idx=0
-			if(point.getZ() > bounds.getMidZ()):
+			if(point.Z > self.bounds.midZ):
 				idx=4
-			if(point.getY() > bounds.getMidY()):
+			if(point.Y > self.bounds.midY):
 				idx = idx + 2
-			if(point.getX() > bounds.getMidX()):
+			if(point.X > self.bounds.midX):
 				idx = idx + 1
-			self.children(idx).addPoints(point)
-			point.addToBinPath(idx)
+			self.children[idx].addPoints([point])
+			point.addToBinPath([idx])
 		del self.points[:]
 		
 	def mergeChildren(self):
@@ -36,3 +40,5 @@ class OctreeBin(object):
 			child.points = []
 		del self.children[:]
 	
+	def addPoints(self, points):
+		self.points.extend(points)

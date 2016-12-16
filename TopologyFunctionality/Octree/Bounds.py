@@ -7,38 +7,41 @@ class Bounds(object):
 		self.maxX = maxX
 		self.maxY = maxY
 		self.maxZ = maxZ
-		self.midX = (maxX - minX)/2
-		self.midY = (maxY - minY)/2
-		self.midZ = (maxZ - minZ)/2
+		self.midX = (maxX + minX)/2
+		self.midY = (maxY + minY)/2
+		self.midZ = (maxZ + minZ)/2
 		
 	def containsPoints(self, points):
 		contains = []
+		i=0
 		for point in points:
-			if  >=point.X 
+			if self.minX < point.X <= self.maxY and self.minY < point.Y <= self.maxY and self.minY < point.Y <= self.maxY:
+				contains.append(i)
+			i=i+1
 		return contains		
 		
 	def getChild(self, i):
 		#Returns the ith (in in 0-7) child bounds.  The order is can be viewed as binary search on z,y,x
 		if i/4 < 1:
-			newMinZ = minZ
-			newMaxZ = midZ
-		else
-			newMinZ = midZ
-			newMaxZ = maxZ
+			newMinZ = self.minZ
+			newMaxZ = self.midZ
+		else:
+			newMinZ = self.midZ
+			newMaxZ = self.maxZ
 			
 		if i%4 < 2:
-			newMinY = minY
-			newMaxY = midY
-		else
-			newMinY = midY
-			newMaxY = maxY
+			newMinY = self.minY
+			newMaxY = self.midY
+		else:
+			newMinY = self.midY
+			newMaxY = self.maxY
 			
 		if i%2 == 0:
-			newMinX = minX
-			newMaxX = midX
-		else
-			newMinX = midX
-			newMaxX = maxX
+			newMinX = self.minX
+			newMaxX = self.midX
+		else:
+			newMinX = self.midX
+			newMaxX = self.maxX
 			
-		return Bounds(minX, minY, minZ, maxX, maxY, maxZ)
+		return Bounds(newMinX, newMinY, newMinZ, newMaxX, newMaxY, newMaxZ)
 		

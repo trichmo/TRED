@@ -1,6 +1,7 @@
-import math
+import numpy
 
-def getSinusoid(frequency, sampleRate, range, delay, amplitude):
-	secPerSample = 1/sampleRate
-	time = (0+delay:secPerSample:range-secPerSample+delay)
-	wave = amplitude*math.sin(math.radians(2*pi*frequency*time))
+def getSinusoid(frequency, sampleRate, amplitude, delay, range):
+	time = numpy.arange(delay,range+delay)
+	wave = amplitude * [numpy.sin(2*numpy.pi*frequency * (i/sampleRate)) for i in numpy.arange(sampleRate*range)]
+	wave = list(wave)
+	return wave

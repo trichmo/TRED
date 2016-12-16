@@ -1,16 +1,14 @@
 class Point(object):
 
-	binPath = property(getBinPath, setBinPath)
-
-	def __init__(self, X, Y, Z, binPath):
-		self._X = X
-		self._Y = Y
-		self._Z = Z	
-		self._binPath = binPath
+	def __init__(self, X, Y, Z):
+		self.X = X
+		self.Y = Y
+		self.Z = Z	
+		self.binPath=[]
 		
 		
 	def addToBinPath(self, bins):
-		self._binPath.extend(bins)
+		self.binPath.extend(bins)
 		
 	def shortenBinPath(self, num):
-		del self._binPath[-num:]
+		del self.binPath[-num:]
