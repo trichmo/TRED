@@ -10,13 +10,26 @@ class Octree(object):
 		self.minDepth = minDepth
 		
 	def appendPoints(self, points):
+                for point in points:
+                        addPointToBinPath(point)
 		self.points.extend(points)
-		del self.points[0:len(points)]
+		removal =  self.points[0:len(points)]
+		for point in removal:
+                        bin = getBin(point.binPath[-1])
+                        bin.removePoints(point)
+                del self.points[0:len(points)]
+                        
 	
 	def prependPoints(self, points):
-		points.extend(self.points)
-		del points[self.len(points):]
-		self.points = points
+                for point in points:
+                        addPointToBinPath(point)
+                removal = self.points[-len(points):]
+                for point in removal:
+                        bin = getBin(point.binPath[-1])
+                        bin.removePoints(point)
+                del self.points[-len(points):]
+                points.append(self.points)
+                self.points = points
 		
 	def createOctree(self, points, is2D):
 		self.points = points
@@ -44,9 +57,8 @@ class Octree(object):
 			minZ = minZ-1
 			maxZ = maxZ+1
 		self.bounds = Bounds(minX,minY,minZ,maxX,maxY,maxZ)
-		
-		bin = OctreeBin(None, self.points, self.bounds,1)
-		self.splitBin(bin)
+		self.firstLevel = OctreeBin(None, self.points, self.bounds,1)
+		self.splitBin(self.firstLevel)
 		
 	def splitBin(self,bin):
 		if len(bin.points) >= 2 and bin.depth < self.minDepth:
@@ -54,11 +66,25 @@ class Octree(object):
 			for child in bin.children:
 				self.splitBin(child)
 	
-	def drawBins(self):
+	def drawBins(self, bin):
 		if len(bin.children)==0:
-			return ([(bin.bounds.minX,bin.bounds.minY),(bin.bounds.minX,bin.bounds.maxY), (bin.bounds.maxX,bin.bounds.minY), (bin.bounds.maxX,bin.bounds.maxY)],length(bin.points))
+                        print(bin.bounds.minX,bin.bounds.minY,bin.bounds.maxX,bin.bounds.maxY,length(bin.points))
+                        return (bin.bounds.minX,bin.bounds.minY,bin.bounds.maxX,bin.bounds.maxY,length(bin.points))
 		else:
-		binFacts = []
-			for child in bin.children:
-				binFacts.append(child.drawBins())
-			return binFacts
+                        binFacts = []
+                        for child in bin.children:
+                                binFacts.append(child.drawBins())
+                        return binFacts
+
+        def getBin(self, binNos):
+                currBin = self.firstLevel
+                for binNo in binNos:
+                        currBin = currBin.children[binNo]
+                return currBin
+
+        def addPointToBinPath(self,point):
+                currBin = self.firstLevel
+                while len(currBin.children)~=0:
+                        idx = currBin.findIndex(point)
+                        point.addToBinPath([idx])
+                        currBin = currBin.children[idx]
