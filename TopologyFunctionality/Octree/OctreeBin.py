@@ -22,7 +22,7 @@ class OctreeBin(object):
             idx = self.findIndex(point)
             self.children[idx].addPoints([point])
             point.addToBinPath([idx])
-        del self.points[:]
+        self.points=[]
                 
     def mergeChildren(self):
         for child in children:

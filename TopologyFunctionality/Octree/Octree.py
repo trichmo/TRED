@@ -11,24 +11,24 @@ class Octree(object):
 
     def appendPoints(self, points):
         for point in points:
-            addPointToBinPath(point)
+            self.syncNewPointWithBin(point)
         self.points.extend(points)
         removal =  self.points[0:len(points)]
         for point in removal:
-            newBin = getBin(point.binPath[-1])
-            newBin.removePoints(point)
+            newBin = self.getBin(point.binPath)
+            newBin.removePoint(point)
         del self.points[0:len(points)]
 
 
     def prependPoints(self, points):
         for point in points:
-            addPointToBinPath(point)
+            self.syncNewPointWithBin(point)
         removal = self.points[-len(points):]
         for point in removal:
-            newBin = getBin(point.binPath[-1])
-            newBin.removePoints(point)
+            newBin = self.getBin(point.binPath)
+            newBin.removePoint(point)
         del self.points[-len(points):]
-        points.append(self.points)
+        points.extend(self.points)
         self.points = points
 
     def createOctree(self, points, is2D):
@@ -52,10 +52,19 @@ class Octree(object):
                 maxY = point.Y
             if point.Z > maxZ:
                 maxZ = point.Z
-
         if is2D:
             minZ = minZ-1
             maxZ = maxZ+1
+        else:
+            zDist = maxZ - minZ
+            maxZ = maxZ + (zDist/2)
+            minZ = minZ - (zDist/2)
+        xDist = maxX - minX
+        maxX = maxX + (xDist/2)
+        minX = minX - (xDist/2)
+        yDist = maxY - minY
+        maxY = maxY + (yDist/2)
+        minY = minY - (yDist/2)
         self.bounds = Bounds(minX,minY,minZ,maxX,maxY,maxZ)
         self.firstLevel = OctreeBin(None, self.points, self.bounds,1)
         self.splitBin(self.firstLevel)
@@ -68,12 +77,11 @@ class Octree(object):
 
     def drawBins(self, newBin):
         if len(newBin.children)==0:
-            print(newBin.bounds.minX,newBin.bounds.minY,newBin.bounds.maxX,newBin.bounds.maxY,length(newBin.points))
-            return (newBin.bounds.minX,newBin.bounds.minY,newBin.bounds.maxX,newBin.bounds.maxY,length(newBin.points))
+            return [(newBin.bounds, len(newBin.points)/80)]
         else:
             binFacts = []
             for child in newBin.children:
-                binFacts.append(child.drawBins())
+                binFacts.extend(self.drawBins(child))
             return binFacts
 
     def getBin(self, binNos):
@@ -82,9 +90,11 @@ class Octree(object):
             currBin = currBin.children[binNo]
         return currBin
 
-    def addPointToBinPath(self,point):
+    def syncNewPointWithBin(self,point):
         currBin = self.firstLevel
         while len(currBin.children)!=0:
             idx = currBin.findIndex(point)
             point.addToBinPath([idx])
             currBin = currBin.children[idx]
+        currBin.addPoints([point])
+        

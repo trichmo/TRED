@@ -27,6 +27,15 @@ def AutoCorFcn(wave,maxTau):
 		C[i]=r[0,1]
 	return C
 	
+def slidePhaseSpace(wave, waveStart, numPoints, tauX):
+	numPoints = abs(numPoints)
+	x=np.empty(numPoints)
+	y=np.empty(numPoints)
+	for i in range(0,numPoints):
+		x[i] = wave[waveStart+i]
+		y[i] = wave[waveStart+i+tauX]
+	return(x,y)
+	
 def getPhaseSpace(wave,tauX):
 	dim=2
 	N = wave.size
