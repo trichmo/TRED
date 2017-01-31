@@ -21,7 +21,7 @@ class Bounds(object):
 		return contains		
 		
 	def getChild(self, i):
-		#Returns the ith (in in 0-7) child bounds.  The order is can be viewed as binary search on z,y,x
+		#Returns the ith (in in 0-7) child bounds.  The order can be viewed as binary search on z,y,x
 		if i/4 < 1:
 			newMinZ = self.minZ
 			newMaxZ = self.midZ
@@ -44,4 +44,6 @@ class Bounds(object):
 			newMaxX = self.maxX
 			
 		return Bounds(newMinX, newMinY, newMinZ, newMaxX, newMaxY, newMaxZ)
-		
+
+                        
+                        

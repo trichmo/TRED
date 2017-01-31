@@ -5,6 +5,7 @@ from TopologyFunctionality.Helper import OctreeUtil as ou
 from TopologyFunctionality.Octree import Octree
 import numpy as np
 import matplotlib.patches as patches
+import time
 
 class Image(object):
     
@@ -24,7 +25,9 @@ class Image(object):
         self.fig.canvas.draw()
         self.points = ou.getPointObjects(self.x,self.y)
         self.oct = Octree.Octree(5)
+        start = time.perf_counter()
         self.oct.createOctree(self.points,True)
+        print(time.perf_counter()-start)
         
     def drawScatter(self):
         self.ax.scatter(self.x,self.y,color='k')
@@ -35,9 +38,9 @@ class Image(object):
         if event.key not in ('n', 'p'):
             return
         if event.key == 'n':
-            self.slideWindow(5)
+            self.slideWindow(1)
         elif event.key == 'p':
-            self.slideWindow(-5)
+            self.slideWindow(-1)
         plt.cla()
         self.drawScatter()
         self.drawOctree()
