@@ -18,13 +18,11 @@ class TrajectorySegment(object):
         self.front.removeTrajectory(self)
         self.back.removeTrajectory(self)
         backBin = ou.getBin(firstBin,self.back.binPath)
-        backBin.decrementTrajectoryCount()
         if self.tempPoints is not None:
             for tempPoint in self.tempPoints:
                 newBin = ou.getBin(firstBin,tempPoint.binPath)
                 closestRelative = tempPoint.findClosestRelative([self.front,self.back])
                 ou.removeTrajFromBinPath(firstBin,closestRelative,tempPoint)
-                newBin.decrementTrajectoryCount()
                 newBin.removePoint(tempPoint)
                 tempPoint.removeTrajectory(self)
 

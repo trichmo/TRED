@@ -36,10 +36,17 @@ class Octree(object):
         self.points = points
 
     def handleBinEnds(self,oldFirst,newFirst):
-        oldBinTraj = getBin(self.firstLevel,oldFirst.binPath)
-        oldBinTraj.decrementTrajectoryCount()
-        newBinTraj = getBin(self.firstLevel,newFirst.binPath)
-        newBinTraj.incrementTrajectoryCount()
+        currBin = self.firstLevel
+        for binNo in oldFirst.binPath:
+            if len(currBin.children)==0:
+                pdb.set_trace()
+            currBin = currBin.children[binNo]
+            currBin.decrementTrajectoryCount()
+            
+        currBin = self.firstLevel
+        for binNo in newFirst.binPath:
+            currBin = currBin.children[binNo]
+            currBin.incrementTrajectoryCount()
 
     def killPoints(self, removal):
         for point in removal:
@@ -55,7 +62,7 @@ class Octree(object):
     def manageBinMerge(self, editedBin):
         editedParent = editedBin.parent
         if (editedParent.trajCt == 0 or not editedBin.checkAncestorsTraj()) and editedBin.depth>2:
-            #pdb.set_trace()
+            pdb.set_trace()
             editedParent.mergeChildren()
             self.manageBinMerge(editedParent)
 
@@ -120,9 +127,6 @@ class Octree(object):
         (len(newBin.points)/len(self.points) > self.splitPtThresh)):
             if newBin.depth < self.minDepth:
                 newBin.divide()
-                firstBin = getBin(self.firstLevel, self.points[0].binPath)
-                if firstBin in newBin.children:
-                    firstBin.incrementTrajectoryCount()
                 for child in newBin.children:
                     self.splitBin(child)
 

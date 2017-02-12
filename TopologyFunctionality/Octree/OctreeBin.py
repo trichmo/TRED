@@ -53,6 +53,11 @@ class OctreeBin(object):
                     ou.addTrajectory(self.points[ptIdx-1],point,bin1,bin2)
             #the point has to have a neighbor in another binset
             else:
+                for traj in point.trajectories:
+                    for extraPt in traj.tempPoints:
+                        if extraPt.binPath[:self.depth-1] == point.binPath[:self.depth-1]:
+                            exBin = ou.getExtraPointBin(extraPt,firstLvl)
+                            exBin.incrementTrajectoryCount()
                 myBin = ou.getBin(firstLvl,point.binPath)
                 myBin.incrementTrajectoryCount()
             prevPointId=point.pointId
@@ -66,6 +71,7 @@ class OctreeBin(object):
         print("Merging")
         self.arePointsSorted=False
         for child in self.children:
+            child.mergeChildren()
             print("checking a child")
             for point in child.points:
                 for traj in point.trajectories:

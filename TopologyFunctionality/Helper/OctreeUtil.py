@@ -82,8 +82,8 @@ def removeTrajFromBinPath(firstBin,point1,point2):
                         break
         if i != point2binlen:
                 for j in range(i,point2binlen):
-                        currBin.decrementTrajectoryCount()
                         currBin = currBin.children[point2.binPath[j]]
+                        currBin.decrementTrajectoryCount()
 
 def getFirstLevelBin(anyBin):
         while anyBin.parent:
