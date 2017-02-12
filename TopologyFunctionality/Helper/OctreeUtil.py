@@ -121,6 +121,15 @@ def getExtraPointBin(exPt,firstBin):
                 if currBin.children:
                         currBin = currBin.children[binNo]
         while currBin.children:
-                idx = currBin.findIndex
-                currBin = currBin.children[idx]
+                binIdx = currBin.findIndex
+                currBin = currBin.children[binIdx]
         return currBin
+
+def getChildPtCount(parent):
+        childpts = 0
+        for child in parent.children:
+                if len(child.children)!=0:
+                        childpts = childpts + getChildPtCount(child)
+                else:
+                        childpts = childpts + len(child.points)
+        return childpts

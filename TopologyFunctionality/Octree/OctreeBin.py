@@ -68,16 +68,12 @@ class OctreeBin(object):
         self.arePointsSorted=True
 
     def mergeChildren(self):
-        print("Merging")
         self.arePointsSorted=False
         for child in self.children:
             child.mergeChildren()
-            print("checking a child")
             for point in child.points:
                 for traj in point.trajectories:
                     if traj.front.binPath[:self.depth] == traj.back.binPath[:self.depth]:
-                        messing = ou.getBin(ou.getFirstLevelBin(self),traj.back.binPath)
-                        messing.incrementTrajectoryCount()
                         traj.killTrajectory(self)
                 point.shortenBinPath(1)
             self.points.extend(child.points)

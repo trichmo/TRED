@@ -1,7 +1,7 @@
 from .Bounds import Bounds
 from .OctreeBin import OctreeBin
 from .TrajectorySegment import TrajectorySegment
-from TopologyFunctionality.Helper.OctreeUtil import *
+from TopologyFunctionality.Helper import OctreeUtil as ou 
 import pdb
 
 class Octree(object):
@@ -11,7 +11,6 @@ class Octree(object):
         self.bounds = []
         self.points = []
         self.minDepth = minDepth
-        #self.extraPts = []
         self.splitPtThresh = 0.6
 
     def appendPoints(self, points):
@@ -38,8 +37,6 @@ class Octree(object):
     def handleBinEnds(self,oldFirst,newFirst):
         currBin = self.firstLevel
         for binNo in oldFirst.binPath:
-            if len(currBin.children)==0:
-                pdb.set_trace()
             currBin = currBin.children[binNo]
             currBin.decrementTrajectoryCount()
             
@@ -51,20 +48,18 @@ class Octree(object):
     def killPoints(self, removal):
         for point in removal:
             for traj in point.trajectories:
-                #only for drawing
-                #for pt in traj.tempPoints:
-                    #self.extraPts.remove(pt)
                 traj.killTrajectory(self.firstLevel)   
-            editBin = getBin(self.firstLevel,point.binPath)
+            editBin = ou.getBin(self.firstLevel,point.binPath)
             editBin.removePoint(point)
             self.manageBinMerge(editBin)
 
     def manageBinMerge(self, editedBin):
         editedParent = editedBin.parent
         if (editedParent.trajCt == 0 or not editedBin.checkAncestorsTraj()) and editedBin.depth>2:
-            pdb.set_trace()
-            editedParent.mergeChildren()
-            self.manageBinMerge(editedParent)
+            siblingPts = ou.getChildPtCount(editedParent)
+            if self.splitPtThresh>(siblingPts/len(self.points)):
+                editedParent.mergeChildren()
+                self.manageBinMerge(editedParent)
 
         
     def createOctree(self, points, is2D):
@@ -108,11 +103,11 @@ class Octree(object):
     def createTrajectories(self,lastPoint,points,isSyncWithBin):
         for point in points:
             if isSyncWithBin:
-                syncNewPointWithBin(point,self.firstLevel)
-            bin1 = getBin(self.firstLevel,lastPoint.binPath)
-            bin2 = getBin(self.firstLevel,point.binPath)
+                ou.syncNewPointWithBin(point,self.firstLevel)
+            bin1 = ou.getBin(self.firstLevel,lastPoint.binPath)
+            bin2 = ou.getBin(self.firstLevel,point.binPath)
             if bin1 != bin2:
-                addTrajectory(lastPoint, point,bin1,bin2)
+                ou.addTrajectory(lastPoint, point,bin1,bin2)
                 self.splitBin(bin2)
             lastPoint=point
 
