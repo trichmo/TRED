@@ -2,6 +2,7 @@ from .Bounds import Bounds
 from .OctreeBin import OctreeBin
 from .TrajectorySegment import TrajectorySegment
 from TopologyFunctionality.Helper.OctreeUtil import *
+import pdb
 
 class Octree(object):
 
@@ -10,35 +11,55 @@ class Octree(object):
         self.bounds = []
         self.points = []
         self.minDepth = minDepth
+        #self.extraPts = []
+        self.splitPtThresh = 0.6
 
     def appendPoints(self, points):
         lastPoint = self.points[-1]
+        self.handleBinEnds(self.points[0],self.points[len(points)])
         self.createTrajectories(lastPoint,points,1)
         self.points.extend(points)
         removal =  self.points[0:len(points)]
-        for point in removal:
-            newBin = self.getBin(point.binPath)
-            newBin.removePoint(point)
-            newBin.trajCt = newBin.trajCt-1
-            for traj in point.trajectories:
-                traj.killTrajectory(self)
+        self.killPoints(removal)
         del self.points[0:len(points)]
 
 
     def prependPoints(self, points):
         lastPoint = self.points[0]
-        self.createTrajectories(lastPoint,points,1)
+        revPoints = points[::-1]
+        self.createTrajectories(lastPoint,revPoints,1)
+        self.handleBinEnds(lastPoint,points[0])
         removal = self.points[-len(points):]
-        for point in removal:
-            newBin = self.getBin(point.binPath)
-            newBin.removePoint(point)
-            newBin.trajCt = newBin.trajCt-1
-            for traj in point.trajectories:
-                traj.killTrajectory(self)
+        self.killPoints(removal)
         del self.points[-len(points):]
         points.extend(self.points)
         self.points = points
 
+    def handleBinEnds(self,oldFirst,newFirst):
+        oldBinTraj = getBin(self.firstLevel,oldFirst.binPath)
+        oldBinTraj.decrementTrajectoryCount()
+        newBinTraj = getBin(self.firstLevel,newFirst.binPath)
+        newBinTraj.incrementTrajectoryCount()
+
+    def killPoints(self, removal):
+        for point in removal:
+            for traj in point.trajectories:
+                #only for drawing
+                #for pt in traj.tempPoints:
+                    #self.extraPts.remove(pt)
+                traj.killTrajectory(self.firstLevel)   
+            editBin = getBin(self.firstLevel,point.binPath)
+            editBin.removePoint(point)
+            self.manageBinMerge(editBin)
+
+    def manageBinMerge(self, editedBin):
+        editedParent = editedBin.parent
+        if (editedParent.trajCt == 0 or not editedBin.checkAncestorsTraj()) and editedBin.depth>2:
+            #pdb.set_trace()
+            editedParent.mergeChildren()
+            self.manageBinMerge(editedParent)
+
+        
     def createOctree(self, points, is2D):
         self.points = points
         minX = float('inf')
@@ -75,59 +96,43 @@ class Octree(object):
         minY = minY - (yDist/2)
         self.bounds = Bounds(minX,minY,minZ,maxX,maxY,maxZ)
         self.firstLevel = OctreeBin(None, self.points, self.bounds,1,0)
-        self.splitBin(self.firstLevel)
-        lastPoint = self.points[0]
-        self.createTrajectories(lastPoint, points[1:],0)
+        self.initializeSplitting()
 
     def createTrajectories(self,lastPoint,points,isSyncWithBin):
         for point in points:
             if isSyncWithBin:
-                self.syncNewPointWithBin(point)
-            bin1 = self.getBin(lastPoint.binPath)
-            bin2 = self.getBin(point.binPath)
+                syncNewPointWithBin(point,self.firstLevel)
+            bin1 = getBin(self.firstLevel,lastPoint.binPath)
+            bin2 = getBin(self.firstLevel,point.binPath)
             if bin1 != bin2:
-                self.addTrajectory(point, lastPoint,bin2,bin1)
+                addTrajectory(lastPoint, point,bin1,bin2)
+                self.splitBin(bin2)
             lastPoint=point
+
+    def initializeSplitting(self):
+        self.firstLevel.divide()
+        for child in self.firstLevel.children:
+            self.splitBin(child)
         
 
     def splitBin(self,newBin):
-        if len(newBin.points) >= 2 and newBin.depth < self.minDepth:
-            newBin.divide()
-            for child in newBin.children:
-                self.splitBin(child)
+        if ((newBin.trajCt >= 2 and newBin.checkAncestorsTraj()) or
+        (len(newBin.points)/len(self.points) > self.splitPtThresh)):
+            if newBin.depth < self.minDepth:
+                newBin.divide()
+                firstBin = getBin(self.firstLevel, self.points[0].binPath)
+                if firstBin in newBin.children:
+                    firstBin.incrementTrajectoryCount()
+                for child in newBin.children:
+                    self.splitBin(child)
 
     def drawBins(self, newBin):
         if len(newBin.children)==0:
-            print(newBin.trajCt)
-            return [(newBin.bounds, newBin.trajCt/80)]
+            return [(newBin.bounds, newBin.trajCt/15)]
         else:
             binFacts = []
             for child in newBin.children:
                 binFacts.extend(self.drawBins(child))
             return binFacts
 
-    def getBin(self, binNos):
-        currBin = self.firstLevel
-        for binNo in binNos:
-            currBin = currBin.children[binNo]
-        return currBin
 
-    def syncNewPointWithBin(self,point):
-        currBin = self.firstLevel
-        while len(currBin.children)!=0:
-            idx = currBin.findIndex(point)
-            point.addToBinPath([idx])
-            currBin = currBin.children[idx]
-        currBin.addPoints([point])
-        return currBin
-
-    def addTrajectory(self, point1, point2, bin1, bin2):
-        extraPts = getSubTrajectory(bin1,bin2,point1,point2)
-        extraBins = self.addExtraPointsToBins(extraPts)
-        traj = TrajectorySegment(point1,point2,extraPts)
-        bin2.trajCt = bin2.trajCt+1
-
-    def addExtraPointsToBins(self,extraPts):
-        for point in extraPts:
-            currBin = self.syncNewPointWithBin(point)
-            currBin.trajCt = currBin.trajCt+1

@@ -1,3 +1,5 @@
+from TopologyFunctionality.Helper import OctreeUtil as ou
+
 class TrajectorySegment(object):
 
     def __init__(self,point1,point2,tempPoints):
@@ -10,15 +12,27 @@ class TrajectorySegment(object):
             for tempPoint in self.tempPoints:
                 tempPoint.addTrajectory(self)
 
-    def killTrajectory(self,octree):
+    def killTrajectory(self, anyBin):
+        firstBin = ou.getFirstLevelBin(anyBin)
+        ou.removeTrajFromBinPath(firstBin,self.front,self.back)
         self.front.removeTrajectory(self)
         self.back.removeTrajectory(self)
+        backBin = ou.getBin(firstBin,self.back.binPath)
+        backBin.decrementTrajectoryCount()
         if self.tempPoints is not None:
             for tempPoint in self.tempPoints:
-                newBin = octree.getBin(tempPoint.binPath)
-                newBin.trajCt = newBin.trajCt-1
+                newBin = ou.getBin(firstBin,tempPoint.binPath)
+                closestRelative = tempPoint.findClosestRelative([self.front,self.back])
+                ou.removeTrajFromBinPath(firstBin,closestRelative,tempPoint)
+                newBin.decrementTrajectoryCount()
                 newBin.removePoint(tempPoint)
                 tempPoint.removeTrajectory(self)
 
     def isBackPoint(self, questionPt):
         return questionPt in self.tempPoints or questionPt == self.back
+
+        
+    def contains(self,point):
+        if point == self.front or point == self.back:
+            return True
+        return False

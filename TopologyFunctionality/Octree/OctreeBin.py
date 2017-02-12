@@ -1,4 +1,7 @@
 from .Bounds import Bounds
+from TopologyFunctionality.Helper.OctreeUtil import *
+from TopologyFunctionality.Helper import OctreeUtil as ou
+import pdb
 
 class OctreeBin(object):
 
@@ -13,6 +16,10 @@ class OctreeBin(object):
         self.bounds = bounds
         self.depth = depth
         self.trajCt = trajCt
+        self.arePointsSorted = True
+
+    def __repr__(self):
+        return "min: x:%f y:%f z:%f / max: x:%f y:%f z:%f" % (self.bounds.minX,self.bounds.minY,self.bounds.minZ,self.bounds.maxX,self.bounds.maxY,self.bounds.maxZ)
                 
     def divide(self):
         for i in range(8):
@@ -20,19 +27,55 @@ class OctreeBin(object):
             pts=[]
             newChild = OctreeBin(self,pts,childBound, self.depth+1,0)
             self.children.append(newChild)
-        for point in self.points:
-            idx = self.findIndex(point)
-            self.children[idx].addPoints([point])
-            point.addToBinPath([idx])
+        if not self.arePointsSorted:
+            self.sortPoints()
+        prevPointId=-10
+        firstLvl = ou.getFirstLevelBin(self)
+        for ptIdx,point in enumerate(self.points):
+            binIdx = self.findIndex(point)
+            self.children[binIdx].addPoints([point])
+            point.addToBinPath([binIdx])
+            if point.pointId-prevPointId==1: 
+                bin1 = ou.getBin(firstLvl,self.points[ptIdx-1].binPath)
+                bin2 = ou.getBin(firstLvl,point.binPath)
+                notContainedinTraj = True
+                #if the point contains a traj, check to see if other point is in traj.
+                #if so, then don't create a new one, just increment point's bin's ct
+                if point.trajectories:
+                    for traj in point.trajectories:
+                        if traj.contains(self.points[ptIdx-1]):
+                            notContainedinTraj=False
+                            bin2.incrementTrajectoryCount()
+                            for extraPt in traj.tempPoints:
+                                exBin = ou.getExtraPointBin(extraPt,firstLvl)
+                                exBin.incrementTrajectoryCount()
+                if bin1 != bin2 and notContainedinTraj:
+                    ou.addTrajectory(self.points[ptIdx-1],point,bin1,bin2)
+            #the point has to have a neighbor in another binset
+            else:
+                myBin = ou.getBin(firstLvl,point.binPath)
+                myBin.incrementTrajectoryCount()
+            prevPointId=point.pointId
         self.points=[]
 
-    #Curretly Not Implemented with Trajectories
+    def sortPoints(self):
+        self.points.sort()
+        self.arePointsSorted=True
+
     def mergeChildren(self):
-        for child in children:
+        print("Merging")
+        self.arePointsSorted=False
+        for child in self.children:
+            print("checking a child")
             for point in child.points:
+                for traj in point.trajectories:
+                    if traj.front.binPath[:self.depth] == traj.back.binPath[:self.depth]:
+                        messing = ou.getBin(ou.getFirstLevelBin(self),traj.back.binPath)
+                        messing.incrementTrajectoryCount()
+                        traj.killTrajectory(self)
                 point.shortenBinPath(1)
-                self.points.extend(child.points)
-                child.points = []
+            self.points.extend(child.points)
+            child.points = []
         del self.children[:]
 
     def addPoints(self, points):
@@ -53,60 +96,53 @@ class OctreeBin(object):
 
     def dimensionsShared(self,compBin):
         #Important to note that the bins of adjacent points must be adjacent
-        if self.bounds.midX == compBin.bounds.midX:
-            xPlane = None
-        elif self.depth == compBin.depth:
-            if self.bounds.midX > compBin.bounds.midX:
-                xPlane = self.bounds.minX
+        if self.depth == compBin.depth:
+            if self.bounds.midX == compBin.bounds.midX:
+                xPlane = []
+            elif self.bounds.midX > compBin.bounds.midX:
+                xPlane = [self.bounds.minX]
             else:
-                xPlane = compBin.bounds.minX
-        else:
-            if self.bounds.midX > compBin.bounds.midX:
-                if self.bounds.minX == compBin.bounds.minX:
-                    xPlane = compBin.bounds.maxX
-                else:
-                    xPlane = self.bounds.minX
-            else:
-                if compBin.bounds.minX == self.bounds.minX:
-                    xPlane = self.bounds.maxX
-                else:
-                    xPlane = compBin.bounds.minX
-            
-        if self.bounds.midY == compBin.bounds.midY:
-            yPlane = None
-        elif self.depth == compBin.depth:
-            if self.bounds.midY > compBin.bounds.midY:
-                yPlane = self.bounds.minY
-            else:
-                yPlane = compBin.bounds.minY
-        else:
-            if self.bounds.midY > compBin.bounds.midY:
-                if self.bounds.minY == compBin.bounds.minY:
-                    yPlane = compBin.bounds.maxY
-                else:
-                    yPlane = self.bounds.minY
-            else:
-                if compBin.bounds.minY == self.bounds.minY:
-                    yPlane = self.bounds.maxY
-                else:
-                    yPlane = compBin.bounds.minY
+                xPlane = [self.bounds.maxX]
 
-        if self.bounds.midZ == compBin.bounds.midZ:
-            zPlane = None
-        elif self.depth == compBin.depth:
-            if self.bounds.midZ > compBin.bounds.midZ:
-                zPlane = self.bounds.minZ
+            if self.bounds.midY == compBin.bounds.midY:
+                yPlane = []
+            elif self.bounds.midY > compBin.bounds.midY:
+                yPlane = [self.bounds.minY]
             else:
-                zPlane = compBin.bounds.minZ
+                yPlane = [self.bounds.maxY]
+
+            if self.bounds.midZ == compBin.bounds.midZ:
+                zPlane = []
+            elif self.bounds.midZ > compBin.bounds.midZ:
+                zPlane = [self.bounds.minZ]
+            else:
+                xPlane = [self.bounds.maxZ]
         else:
-            if self.bounds.midZ > compBin.bounds.midZ:
-                if self.bounds.minZ == compBin.bounds.minZ:
-                    zPlane = compBin.bounds.maxZ
-                else:
-                    zPlane = self.bounds.minZ
+            if self.depth < compBin.depth:
+                xPlane = [self.bounds.minX, self.bounds.maxX]
+                yPlane = [self.bounds.minY, self.bounds.maxY]
+                zPlane = [self.bounds.minZ, self.bounds.maxZ]
             else:
-                if compBin.bounds.minZ == self.bounds.minZ:
-                    zPlane = self.bounds.maxZ
-                else:
-                    zPlane = compBin.bounds.minZ
+                xPlane = [compBin.bounds.minX, compBin.bounds.maxX]
+                yPlane = [compBin.bounds.minY, compBin.bounds.maxY]
+                zPlane = [compBin.bounds.minZ, compBin.bounds.maxZ]
+    
         return xPlane, yPlane, zPlane
+
+    def checkAncestorsTraj(self):
+        if self.parent is not None:
+            return self.parent.isTrajDecreasing(self.trajCt)
+        else:
+            return True
+
+    def isTrajDecreasing(self, trajCt):
+        if self.parent is not None:
+            return self.parent.isTrajDecreasing(self.trajCt) and self.trajCt >= trajCt
+        else:
+            return True
+
+    def incrementTrajectoryCount(self):
+        self.trajCt = self.trajCt+1
+
+    def decrementTrajectoryCount(self):
+        self.trajCt = self.trajCt-1

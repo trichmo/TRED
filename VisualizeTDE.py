@@ -21,18 +21,26 @@ class Image(object):
         self.oldY = []
         self.newX = []
         self.newY = []
-        self.drawScatter()
-        self.fig.canvas.draw()
         self.points = ou.getPointObjects(self.x,self.y)
         self.oct = Octree.Octree(5)
         start = time.perf_counter()
         self.oct.createOctree(self.points,True)
+        self.drawScatter()
+        self.drawOctree()
+        self.fig.canvas.draw()
         print(time.perf_counter()-start)
         
     def drawScatter(self):
-        self.ax.scatter(self.x,self.y,color='k')
-        self.ax.scatter(self.oldX,self.oldY,color='r')
-        self.ax.scatter(self.newX,self.newY,color='c')
+        self.ax.plot(self.x,self.y,'-o',color='k')
+        self.ax.plot(self.oldX,self.oldY,'-o',color='r')
+        self.ax.plot(self.newX,self.newY,'-o',color='c')
+        tempX=[]
+        tempY=[]
+        #for visualizing extraPts
+        #for pt in self.oct.extraPts:
+        #    tempX.append(pt.X)
+        #    tempY.append(pt.Y)
+        #self.ax.plot(tempX,tempY,'.',color='y')
 
     def drawPlot(self, event):
         if event.key not in ('n', 'p'):
@@ -54,7 +62,7 @@ class Image(object):
             if distance>0:
                 self.oldX=self.x[:distance]
                 self.oldY=self.y[:distance]
-                (self.newX,self.newY) = tde.slidePhaseSpace(self.wave,self.waveEnd,distance,self.tauX)
+                (self.newX,self.newY) = tde.slidePhaseSpace(self.wave,self.waveEnd+44,distance,self.tauX)
                 self.x=np.concatenate((self.x[distance:],self.newX))
                 self.y=np.concatenate((self.y[distance:],self.newY))
                 newPts = ou.getPointObjects(self.newX,self.newY)
