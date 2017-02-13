@@ -47,8 +47,7 @@ class OctreeBin(object):
                             notContainedinTraj=False
                             bin2.incrementTrajectoryCount()
                             for extraPt in traj.tempPoints:
-                                exBin = ou.getExtraPointBin(extraPt,firstLvl)
-                                exBin.incrementTrajectoryCount()
+                                exBin = ou.incrementExtraPointBins(extraPt,firstLvl,[point, self.points[ptIdx-1]])
                 if bin1 != bin2 and notContainedinTraj:
                     ou.addTrajectory(self.points[ptIdx-1],point,bin1,bin2)
             #the point has to have a neighbor in another binset
@@ -56,8 +55,7 @@ class OctreeBin(object):
                 for traj in point.trajectories:
                     for extraPt in traj.tempPoints:
                         if extraPt.binPath[:self.depth-1] == point.binPath[:self.depth-1]:
-                            exBin = ou.getExtraPointBin(extraPt,firstLvl)
-                            exBin.incrementTrajectoryCount()
+                            exBin = ou.incrementExtraPointBins(extraPt,firstLvl,[point, self.points[ptIdx-1]])
                 myBin = ou.getBin(firstLvl,point.binPath)
                 myBin.incrementTrajectoryCount()
             prevPointId=point.pointId
@@ -84,6 +82,8 @@ class OctreeBin(object):
         self.points.extend(points)
 
     def removePoint(self,point):
+        if point not in self.points:
+            pdb.set_trace()
         self.points.remove(point)
 
     def findIndex(self,point):

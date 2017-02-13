@@ -36,19 +36,14 @@ class Image(object):
         self.ax.plot(self.newX,self.newY,'-o',color='c')
         tempX=[]
         tempY=[]
-        #for visualizing extraPts
-        #for pt in self.oct.extraPts:
-        #    tempX.append(pt.X)
-        #    tempY.append(pt.Y)
-        #self.ax.plot(tempX,tempY,'.',color='y')
 
     def drawPlot(self, event):
         if event.key not in ('n', 'p'):
             return
         if event.key == 'n':
-            self.slideWindow(1)
+            self.slideWindow(5)
         elif event.key == 'p':
-            self.slideWindow(-1)
+            self.slideWindow(-5)
         plt.cla()
         self.drawScatter()
         self.drawOctree()

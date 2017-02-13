@@ -1,3 +1,4 @@
+import pdb
 class Point(object):
 
         pointId = 0
@@ -9,7 +10,7 @@ class Point(object):
                 self.binPath=[]
                 self.trajectories = []
                 self.pointId = Point.pointId
-                Point.pointId += 1
+                Point.pointId += 1 
 
         def __lt__(self,other):
                 return self.pointId<other.pointId

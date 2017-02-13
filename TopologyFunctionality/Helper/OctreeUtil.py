@@ -50,9 +50,19 @@ def getSubTrajectory(bin1,bin2,point1,point2):
 def getBin(firstBin, binNos):
         currBin = firstBin
         for binNo in binNos:
-                if len(currBin.children) == 0:
+                if currBin.children == []:
                         pdb.set_trace()
                 currBin = currBin.children[binNo]
+        return currBin
+
+def getTempPtBin(firstBin,binNos,exPt):
+        currBin = firstBin
+        for binNo in binNos:
+                if currBin.children:
+                        currBin = currBin.children[binNo]
+        while currBin.children:
+                binIdx = currBin.findIndex(exPt)
+                currBin = currBin.children[binIdx]
         return currBin
 
 def addTrajToBinPath(firstBin,point1,point2):
@@ -100,11 +110,17 @@ def addTrajectory(point1, point2, bin1, bin2):
 
 def addExtraPointsToBins(point1,point2,extraPts,firstBin):
         for point in extraPts:
-                currBin = syncNewPointWithBin(point,firstBin)
+                currBin = syncExtraPointWithBin(point,firstBin)
                 closestRelative = point.findClosestRelative([point1,point2])
                 addTrajToBinPath(getFirstLevelBin(currBin),closestRelative,point)
-        #only for drawing
-                #self.extraPts.append(point)
+
+def syncExtraPointWithBin(point,firstBin):
+        currBin = firstBin
+        while len(currBin.children)!=0:
+                idx = currBin.findIndex(point)
+                point.addToBinPath([idx])
+                currBin = currBin.children[idx]
+        return currBin
 
 def syncNewPointWithBin(point,firstBin):
         currBin = firstBin
@@ -115,15 +131,37 @@ def syncNewPointWithBin(point,firstBin):
         currBin.addPoints([point])
         return currBin
 
-def getExtraPointBin(exPt,firstBin):
+
+def incrementExtraPointBins(exPt,firstBin,neighbors):
+        exPt.binPath = updateTempPointBinPath(exPt, firstBin)
+        closestRelative = exPt.findClosestRelative(neighbors)
+        exPtBinLen = len(exPt.binPath)
+        minLen = min(len(closestRelative.binPath),exPtBinLen)
+        i=0
         currBin = firstBin
+        while exPt.binPath[i] == closestRelative.binPath[i]:
+                currBin = currBin.children[exPt.binPath[i]]
+                i=i+1
+                if i == minLen:
+                        break
+        if i != exPtBinLen:
+                for j in range(i,exPtBinLen):
+                        currBin = currBin.children[exPt.binPath[j]]
+                        currBin.incrementTrajectoryCount()
+        return currBin
+
+def updateTempPointBinPath(exPt,firstBin):
+        currBin = firstBin
+        newPath = []
         for binNo in exPt.binPath:
                 if currBin.children:
                         currBin = currBin.children[binNo]
+                        newPath.append(binNo)
         while currBin.children:
-                binIdx = currBin.findIndex
+                binIdx = currBin.findIndex(exPt)
                 currBin = currBin.children[binIdx]
-        return currBin
+                newPath.append(binIdx)
+        return newPath
 
 def getChildPtCount(parent):
         childpts = 0

@@ -118,7 +118,7 @@ class Octree(object):
         
 
     def splitBin(self,newBin):
-        if ((newBin.trajCt >= 2 and newBin.checkAncestorsTraj()) or
+        if ((newBin.trajCt >= 4 and newBin.checkAncestorsTraj()) or
         (len(newBin.points)/len(self.points) > self.splitPtThresh)):
             if newBin.depth < self.minDepth:
                 newBin.divide()

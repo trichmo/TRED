@@ -20,10 +20,11 @@ class TrajectorySegment(object):
         backBin = ou.getBin(firstBin,self.back.binPath)
         if self.tempPoints is not None:
             for tempPoint in self.tempPoints:
-                newBin = ou.getBin(firstBin,tempPoint.binPath)
+                newBin = ou.getTempPtBin(firstBin,tempPoint.binPath,tempPoint)
                 closestRelative = tempPoint.findClosestRelative([self.front,self.back])
+                tempPoint.binPath = ou.updateTempPointBinPath(tempPoint,firstBin)
                 ou.removeTrajFromBinPath(firstBin,closestRelative,tempPoint)
-                newBin.removePoint(tempPoint)
+                #newBin.removePoint(tempPoint)
                 tempPoint.removeTrajectory(self)
 
     def isBackPoint(self, questionPt):
