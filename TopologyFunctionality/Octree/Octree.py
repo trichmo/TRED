@@ -103,7 +103,7 @@ class Octree(object):
     def createTrajectories(self,lastPoint,points,isSyncWithBin):
         for point in points:
             if isSyncWithBin:
-                ou.syncNewPointWithBin(point,self.firstLevel)
+                ou.syncNewPointWithBin(point,self.firstLevel,lastPoint)
             bin1 = ou.getBin(self.firstLevel,lastPoint.binPath)
             bin2 = ou.getBin(self.firstLevel,point.binPath)
             if bin1 != bin2:
@@ -133,5 +133,18 @@ class Octree(object):
             for child in newBin.children:
                 binFacts.extend(self.drawBins(child))
             return binFacts
+
+    def getKdSubsamplePoints(self, newBin = self.firstLevel):
+        if len(newBin.children)==0:
+            if newBin.trajCt > 5:
+                bds = newBin.bounds
+                return [bds.midX,bds.midY]
+            else:
+                return []
+        else:
+            keyBins = []
+            for child in newBin.children:
+                keyBins.append(self.getKdSubsamplePoints(child))
+            return keyBins
 
 

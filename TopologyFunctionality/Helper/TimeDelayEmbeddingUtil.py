@@ -1,7 +1,7 @@
 import numpy as np
 
 def getWaveEnd(waveStart):
-	return waveStart + 1000
+	return waveStart + 950
 	
 def getPhaseData(wave,waveStart,waveEnd):
 	windowSize = waveEnd-waveStart

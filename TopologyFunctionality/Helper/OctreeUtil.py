@@ -122,15 +122,29 @@ def syncExtraPointWithBin(point,firstBin):
                 currBin = currBin.children[idx]
         return currBin
 
-def syncNewPointWithBin(point,firstBin):
-        currBin = firstBin
-        while len(currBin.children)!=0:
-                idx = currBin.findIndex(point)
-                point.addToBinPath([idx])
-                currBin = currBin.children[idx]
+def syncNewPointWithBin(point,firstBin,lastPt):
+        currBin,binPath = getRelaxedBinAndBinPath(firstBin,point,lastPt)
+        point.binPath = binPath
         currBin.addPoints([point])
         return currBin
 
+def getRelaxedBinAndBinPath(firstBin,point,lastPt):
+        currBin = firstBin
+        binPath = []
+        i=0
+        checkLastPt=True
+        while len(currBin.children)!=0:
+                idx = currBin.findIndex(point)
+                if i<len(lastPt.binPath):
+                        if idx != lastPt.binPath[i] and checkLastPt:
+                                if getBin(firstBin,lastPt.binPath[:i+1]).relaxedContent(point):
+                                        idx = lastPt.binPath[i]
+                                else:
+                                        checkLastPt=False
+                binPath.append(idx)
+                currBin = currBin.children[idx]
+                i+=1
+        return currBin,binPath
 
 def incrementExtraPointBins(exPt,firstBin,neighbors):
         exPt.binPath = updateTempPointBinPath(exPt, firstBin)

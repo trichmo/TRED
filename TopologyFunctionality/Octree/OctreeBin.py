@@ -17,6 +17,7 @@ class OctreeBin(object):
         self.depth = depth
         self.trajCt = trajCt
         self.arePointsSorted = True
+        self.relaxedEpsilon = 0.0005
 
     def __repr__(self):
         return "min: x:%f y:%f z:%f / max: x:%f y:%f z:%f" % (self.bounds.minX,self.bounds.minY,self.bounds.minZ,self.bounds.maxX,self.bounds.maxY,self.bounds.maxZ)
@@ -32,12 +33,11 @@ class OctreeBin(object):
         prevPointId=-10
         firstLvl = ou.getFirstLevelBin(self)
         for ptIdx,point in enumerate(self.points):
-            binIdx = self.findIndex(point)
-            self.children[binIdx].addPoints([point])
-            point.addToBinPath([binIdx])
-            if point.pointId-prevPointId==1: 
+            if point.pointId-prevPointId==1:
+                bin2,newBinPath = ou.getRelaxedBinAndBinPath(firstLvl,point,self.points[ptIdx-1])
+                point.addToBinPath([newBinPath[-1]])
+                bin2.addPoints([point])
                 bin1 = ou.getBin(firstLvl,self.points[ptIdx-1].binPath)
-                bin2 = ou.getBin(firstLvl,point.binPath)
                 notContainedinTraj = True
                 #if the point contains a traj, check to see if other point is in traj.
                 #if so, then don't create a new one, just increment point's bin's ct
@@ -52,6 +52,9 @@ class OctreeBin(object):
                     ou.addTrajectory(self.points[ptIdx-1],point,bin1,bin2)
             #the point has to have a neighbor in another binset
             else:
+                binIdx = self.findIndex(point)
+                self.children[binIdx].addPoints([point])
+                point.addToBinPath([binIdx])
                 for traj in point.trajectories:
                     for extraPt in traj.tempPoints:
                         if extraPt.binPath[:self.depth-1] == point.binPath[:self.depth-1]:
@@ -142,6 +145,13 @@ class OctreeBin(object):
             return self.parent.isTrajDecreasing(self.trajCt) and self.trajCt >= trajCt
         else:
             return True
+
+    def relaxedContent(self,point):
+        mybounds = self.bounds
+        withinX = (mybounds.maxX + self.relaxedEpsilon)>=point.X>=(mybounds.minX - self.relaxedEpsilon)
+        withinY = (mybounds.maxY + self.relaxedEpsilon)>=point.Y>=(mybounds.minY - self.relaxedEpsilon)
+        withinZ = (mybounds.maxZ + self.relaxedEpsilon)>=point.Z>=(mybounds.minZ - self.relaxedEpsilon)
+        return withinX and withinY and withinZ
 
     def incrementTrajectoryCount(self):
         self.trajCt = self.trajCt+1
