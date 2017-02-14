@@ -17,7 +17,7 @@ class OctreeBin(object):
         self.depth = depth
         self.trajCt = trajCt
         self.arePointsSorted = True
-        self.relaxedEpsilon = 0.0005
+        self.relaxedEpsilon = 0.05
 
     def __repr__(self):
         return "min: x:%f y:%f z:%f / max: x:%f y:%f z:%f" % (self.bounds.minX,self.bounds.minY,self.bounds.minZ,self.bounds.maxX,self.bounds.maxY,self.bounds.maxZ)

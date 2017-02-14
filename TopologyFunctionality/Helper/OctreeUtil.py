@@ -12,6 +12,12 @@ def getPointObjects(x,y):
 		newObj = Point(a,b,0)
 		pointObjs.append(newObj)
 	return pointObjs
+
+def getPointObsFromSingleSrc(points):
+        pointObjs = []
+        for x,y in points:
+                pointObjs.append(Point(float(x),float(y),0))
+        return pointObjs
 	
 def getSubTrajectory(bin1,bin2,point1,point2):
         xPlane, yPlane, zPlane = bin1.dimensionsShared(bin2)

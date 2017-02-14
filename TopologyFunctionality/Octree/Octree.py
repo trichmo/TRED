@@ -118,7 +118,7 @@ class Octree(object):
         
 
     def splitBin(self,newBin):
-        if ((newBin.trajCt >= 4 and newBin.checkAncestorsTraj()) or
+        if ((newBin.trajCt >= 2 and newBin.checkAncestorsTraj()) or
         (len(newBin.points)/len(self.points) > self.splitPtThresh)):
             if newBin.depth < self.minDepth:
                 newBin.divide()
@@ -127,24 +127,26 @@ class Octree(object):
 
     def drawBins(self, newBin):
         if len(newBin.children)==0:
-            return [(newBin.bounds, newBin.trajCt/15)]
+            return [(newBin.bounds, newBin.trajCt/20)]
         else:
             binFacts = []
             for child in newBin.children:
                 binFacts.extend(self.drawBins(child))
             return binFacts
 
-    def getKdSubsamplePoints(self, newBin = self.firstLevel):
+
+    def getKdSubsamplePoints(self, newBin = None):
+        if newBin == None:
+            newBin = self.firstLevel
         if len(newBin.children)==0:
-            if newBin.trajCt > 5:
+            if newBin.trajCt > 2:
                 bds = newBin.bounds
-                return [bds.midX,bds.midY]
+                return [[bds.midX,bds.midY]]
             else:
                 return []
         else:
             keyBins = []
             for child in newBin.children:
-                keyBins.append(self.getKdSubsamplePoints(child))
+                keyBins.extend(self.getKdSubsamplePoints(child))
             return keyBins
-
 
