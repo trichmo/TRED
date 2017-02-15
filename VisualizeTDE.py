@@ -3,6 +3,7 @@ from TopologyFunctionality.Startup import Startup
 from TopologyFunctionality.Helper import TimeDelayEmbeddingUtil as tde
 from TopologyFunctionality.Helper import OctreeUtil as ou
 from TopologyFunctionality.Octree import Octree
+import Subsampling as ss
 import numpy as np
 import matplotlib.patches as patches
 import time
@@ -12,11 +13,28 @@ class Image(object):
     def __init__(self,fig,ax):
         self.fig = fig
         self.ax = ax
-        self.wave = np.array(Startup())
+        #self.wave = np.array(Startup())
+
+        self.wave = ss.getPointsFromFile()
+        self.waveLength = len(self.wave)
+
         self.waveStart = 0
         self.waveEnd = tde.getWaveEnd(self.waveStart)
-        self.waveLength = self.wave.size
-        [self.x,self.y, self.tauX] = tde.getPhaseData(self.wave, self.waveStart, self.waveEnd)
+        #self.waveLength = self.wave.size
+        #[self.x,self.y, self.tauX] = tde.getPhaseData(self.wave, self.waveStart, self.waveEnd)
+
+        self.allx = [float(i[0]) for i in self.wave]
+        self.ally = [float(i[1]) for i in self.wave]
+        self.x = ss.getBaseWindow(self.allx,-2)
+        self.x.extend(ss.getBaseWindow(self.allx,-1))
+        self.y = ss.getBaseWindow(self.ally,-2)
+        self.y.extend(ss.getBaseWindow(self.ally,-1))
+        self.x = np.array(self.x)
+        self.y = np.array(self.y)
+        self.iterationx = 0
+        self.iterationy = 0
+        
+
         self.oldX = []
         self.oldY = []
         self.newX = []
@@ -41,9 +59,20 @@ class Image(object):
         if event.key not in ('n', 'p'):
             return
         if event.key == 'n':
-            self.slideWindow(5)
+            self.oldX = self.x[:10]
+            self.oldY = self.y[:10]
+            self.newX = np.array(ss.getWindow(self.allx,self.iterationx))
+            self.newY = np.array(ss.getWindow(self.ally,self.iterationy))
+            self.x = np.concatenate((self.x[10:],self.newX))
+            self.y = np.concatenate((self.y[10:],self.newY))
+            self.iterationx += 1
+            self.iterationy += 1
+            newPoints = ou.getPointObjects(self.newX,self.newY)
+            self.oct.appendPoints(newPoints)
+            #self.slideWindow(15)
         elif event.key == 'p':
-            self.slideWindow(-5)
+            #self.slideWindow(-15)
+            a=1
         plt.cla()
         self.drawScatter()
         self.drawOctree()
