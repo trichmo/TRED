@@ -3,6 +3,7 @@ from TopologyFunctionality.Startup import Startup
 from TopologyFunctionality.Helper import TimeDelayEmbeddingUtil as tde
 from TopologyFunctionality.Helper import OctreeUtil as ou
 from TopologyFunctionality.Octree import Octree
+from TopologyFunctionality.Octree import Bounds
 import Subsampling as ss
 import numpy as np
 import matplotlib.patches as patches
@@ -24,25 +25,32 @@ class Image(object):
         #self.waveLength = self.wave.size
         #[self.x,self.y, self.tauX] = tde.getPhaseData(self.wave, self.waveStart, self.waveEnd)
 
-        self.allx = [float(i[0]) for i in self.wave]
-        self.ally = [float(i[1]) for i in self.wave]
-        self.x = ss.getBaseWindow(self.allx,-2)
-        self.x.extend(ss.getBaseWindow(self.allx,-1))
-        self.y = ss.getBaseWindow(self.ally,-2)
-        self.y.extend(ss.getBaseWindow(self.ally,-1))
-        self.x = np.array(self.x)
-        self.y = np.array(self.y)
-        self.iterationx = 0
-        self.iterationy = 0
-        self.sampleNo = 0
-        
-
-        self.oldX = []
-        self.oldY = []
-        self.newX = []
-        self.newY = []
-        self.points = ou.getPointObjects(self.x,self.y)
-        self.oct = Octree.Octree(5)
+        self.points=[]
+        for idx in self.wave:
+            if i[0] == -1:
+                Point.startNewTrajectory()
+            else:
+                x = float(i[0])
+                y = [float(i[1])
+                self.points.append(ou.getPointObjects(x,y))
+                
+##        self.x = ss.getBaseWindow(self.allx,-2)
+##        self.x.extend(ss.getBaseWindow(self.allx,-1))
+##        self.y = ss.getBaseWindow(self.ally,-2)
+##        self.y.extend(ss.getBaseWindow(self.ally,-1))
+##        self.x = np.array(self.x)
+##        self.y = np.array(self.y)
+##        self.iterationx = 0
+##        self.iterationy = 0
+##        self.sampleNo = 0
+##        
+##
+##        self.oldX = []
+##        self.oldY = []
+##        self.newX = []
+##        self.newY = []
+##        self.points = ou.getPointObjects(self.x,self.y)
+        self.oct = Octree.Octree(5, Bounds.Bounds(0,0,-1,321,481,1))
         start = time.perf_counter()
         self.oct.createOctree(self.points,True)
         self.drawScatter()
