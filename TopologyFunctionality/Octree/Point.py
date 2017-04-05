@@ -34,6 +34,9 @@ class Point(object):
         def shortenBinPath(self, num):
                 del self.binPath[-num:]
 
+        def startNewTrajectory():
+                Point.pointId += 2
+
         def addTrajectory(self, newTrajectory):
                 self.trajectories.append(newTrajectory)
 

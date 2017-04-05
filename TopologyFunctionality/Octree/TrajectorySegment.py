@@ -7,6 +7,7 @@ class TrajectorySegment(object):
         self.back = point2
         self.front.addTrajectory(self)
         self.back.addTrajectory(self)
+        self.tempPoints = []
         self.tempPoints = tempPoints
         if tempPoints is not None:
             for tempPoint in self.tempPoints:

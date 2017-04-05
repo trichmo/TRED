@@ -7,6 +7,7 @@ import Subsampling as ss
 import numpy as np
 import matplotlib.patches as patches
 import time
+import csv
 
 class Image(object):
     
@@ -33,6 +34,7 @@ class Image(object):
         self.y = np.array(self.y)
         self.iterationx = 0
         self.iterationy = 0
+        self.sampleNo = 0
         
 
         self.oldX = []
@@ -45,37 +47,56 @@ class Image(object):
         self.oct.createOctree(self.points,True)
         self.drawScatter()
         self.drawOctree()
+        self.ax.set(adjustable='box-forced', aspect='equal')
+        self.ax.set_ylim(-1.5,1.5)
+        self.ax.set_xlim(-1.5,1.5)
+        np.vectorize(lambda ax:ax.axis('off'))(ax)
         self.fig.canvas.draw()
         print(time.perf_counter()-start)
         
     def drawScatter(self):
-        self.ax.plot(self.x,self.y,'-o',color='k')
-        self.ax.plot(self.oldX,self.oldY,'-o',color='r')
-        self.ax.plot(self.newX,self.newY,'-o',color='c')
+        orig = self.ax.scatter(self.x,self.y,color='k')
+        #plt.setp(orig,linewidth=1)
+        old = self.ax.scatter(self.oldX,self.oldY,color='r')
+        #plt.setp(old,linewidth=1)
+        new = self.ax.scatter(self.newX,self.newY,color='c')
+        #plt.setp(new,linewidth=1)
         tempX=[]
         tempY=[]
 
     def drawPlot(self, event):
-        if event.key not in ('n', 'p'):
+        if event.key not in ('n', 'p','k'):
             return
         if event.key == 'n':
-            self.oldX = self.x[:10]
-            self.oldY = self.y[:10]
+            self.oldX = self.x[:100]
+            self.oldY = self.y[:100]
             self.newX = np.array(ss.getWindow(self.allx,self.iterationx))
             self.newY = np.array(ss.getWindow(self.ally,self.iterationy))
-            self.x = np.concatenate((self.x[10:],self.newX))
-            self.y = np.concatenate((self.y[10:],self.newY))
+            self.x = np.concatenate((self.x[100:],self.newX))
+            self.y = np.concatenate((self.y[100:],self.newY))
             self.iterationx += 1
             self.iterationy += 1
             newPoints = ou.getPointObjects(self.newX,self.newY)
             self.oct.appendPoints(newPoints)
             #self.slideWindow(15)
-        elif event.key == 'p':
+            self.points, isEqual = self.test(self.oct,self.points,newPoints)
+        #elif event.key == 'p':
+        #    a=1
             #self.slideWindow(-15)
-            a=1
+        elif event.key == 'k':
+            sample = self.oct.getKdSubsamplePoints()
+            self.sampleNo+=1
+            with open('sampling'+str(self.sampleNo)+'.csv', 'w', newline='') as outFile:
+                writer = csv.writer(outFile)
+                for point in sample:
+                    writer.writerow(point)
         plt.cla()
+        plt.axis('equal')
+        self.ax.set_ylim(-1.5,1.5)
+        self.ax.set_xlim(-1.5,1.5)
         self.drawScatter()
         self.drawOctree()
+        np.vectorize(lambda ax:ax.axis('off'))(ax)
         self.fig.canvas.draw()
 
     def slideWindow(self, distance):
@@ -104,16 +125,39 @@ class Image(object):
             
     def drawOctree(self):
         binFacts = self.oct.drawBins(self.oct.firstLevel)
-        for bounds, intensity in binFacts:
-            if intensity!=0:
-                if intensity>1:
-                    intensity=1.0
-                self.ax.add_patch(patches.Rectangle((bounds.minX,bounds.minY),bounds.maxX-bounds.minX,bounds.maxY-bounds.minY,alpha=intensity))
+        for bounds, intensity, isKey in binFacts:
+            #if intensity!=0:
+            if intensity>1:
+                intensity=1
+            elif intensity == 0:
+                self.ax.add_patch(patches.Rectangle((bounds.minX,bounds.minY),bounds.maxX-bounds.minX,bounds.maxY-bounds.minY,alpha=(intensity+0.1),color='w',ec='k'))
+            if isKey:
+                self.ax.add_patch(patches.Rectangle((bounds.minX,bounds.minY),bounds.maxX-bounds.minX,bounds.maxY-bounds.minY,alpha=intensity,color='c',ec='k'))
+            else:
+                self.ax.add_patch(patches.Rectangle((bounds.minX,bounds.minY),bounds.maxX-bounds.minX,bounds.maxY-bounds.minY,alpha=intensity,color='b',ec='k'))
             
-            
+
+    def test(self,octDyn,pts,newPts):
+        #pts[len(newPts):].extend(newPts)
+        #staticPts = ou.copyPointObjects(pts)
+        #octStatic = Octree.Octree(5,octDyn.bounds)
+        #octStatic.createOctree(staticPts,True)
+        
+##        myfig, myax = plt.subplots(1,1)
+##        plt.cla()
+##        plt.axis('equal')
+##        myax.set_ylim(-1.5,1.5)
+##        myax.set_xlim(-1.5,1.5)
+##        myax.scatter([point.X for point in octDyn.points],[point.Y for point in octDyn.points],color='k')
+##        plt.show()
+        
+        #isEqual = octDyn.compare(octStatic)
+        #print(isEqual)
+        isEqual = True
+        return pts, isEqual
     
 if __name__ == '__main__':
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(1,1)
     image = Image(fig,ax)
     fig.canvas.mpl_connect('key_press_event',image.drawPlot)
     plt.show()

@@ -136,13 +136,7 @@ class OctreeBin(object):
 
     def checkAncestorsTraj(self):
         if self.parent is not None:
-            return self.parent.isTrajDecreasing(self.trajCt)
-        else:
-            return True
-
-    def isTrajDecreasing(self, trajCt):
-        if self.parent is not None:
-            return self.parent.isTrajDecreasing(self.trajCt) and self.trajCt >= trajCt
+            return self.parent.checkAncestorsTraj() and self.trajCt >=2
         else:
             return True
 

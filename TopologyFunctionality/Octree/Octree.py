@@ -6,9 +6,9 @@ import pdb
 
 class Octree(object):
 
-    def __init__(self, minDepth):
+    def __init__(self, minDepth, bounds = []):
         self.firstLevel = []
-        self.bounds = []
+        self.bounds = bounds
         self.points = []
         self.minDepth = minDepth
         self.splitPtThresh = 0.6
@@ -55,7 +55,7 @@ class Octree(object):
 
     def manageBinMerge(self, editedBin):
         editedParent = editedBin.parent
-        if (editedParent.trajCt == 0 or not editedBin.checkAncestorsTraj()) and editedBin.depth>2:
+        if (editedParent.trajCt < 3 or not editedParent.checkAncestorsTraj()) and editedBin.depth>2:
             siblingPts = ou.getChildPtCount(editedParent)
             if self.splitPtThresh>(siblingPts/len(self.points)):
                 editedParent.mergeChildren()
@@ -83,20 +83,26 @@ class Octree(object):
                 maxY = point.Y
             if point.Z > maxZ:
                 maxZ = point.Z
+        xDist = maxX - minX
+        yDist = maxY - minY
+        xCenter = (maxX+minX)/2
+        yCenter = (maxY+minY)/2
         if is2D:
             minZ = minZ-1
             maxZ = maxZ+1
+            maxDist = max(xDist,yDist)
         else:
             zDist = maxZ - minZ
-            maxZ = maxZ + (zDist/2)
-            minZ = minZ - (zDist/2)
-        xDist = maxX - minX
-        maxX = maxX + (xDist/2)
-        minX = minX - (xDist/2)
-        yDist = maxY - minY
-        maxY = maxY + (yDist/2)
-        minY = minY - (yDist/2)
-        self.bounds = Bounds(minX,minY,minZ,maxX,maxY,maxZ)
+            maxDist = max(xDist,yDist,zDist)
+            zCenter = (maxZ+minZ)/2
+            maxZ = zCenter + (maxDist/2)
+            minZ = zCenter - (maxDist/2)
+        maxX = xCenter + (maxDist/1.5)
+        minX = xCenter - (maxDist/1.5)
+        maxY = yCenter + (maxDist/1.5)
+        minY = yCenter - (maxDist/1.5)
+        if self.bounds==[]:
+            self.bounds = Bounds(minX,minY,minZ,maxX,maxY,maxZ)
         self.firstLevel = OctreeBin(None, self.points, self.bounds,1,0)
         self.initializeSplitting()
 
@@ -118,7 +124,7 @@ class Octree(object):
         
 
     def splitBin(self,newBin):
-        if ((newBin.trajCt >= 2 and newBin.checkAncestorsTraj()) or
+        if ((newBin.trajCt >= 3 and newBin.checkAncestorsTraj()) or
         (len(newBin.points)/len(self.points) > self.splitPtThresh)):
             if newBin.depth < self.minDepth:
                 newBin.divide()
@@ -127,7 +133,10 @@ class Octree(object):
 
     def drawBins(self, newBin):
         if len(newBin.children)==0:
-            return [(newBin.bounds, newBin.trajCt/20)]
+            isKey = 0
+            if newBin.depth == self.minDepth and newBin.trajCt >= 3:
+                isKey=1
+            return [(newBin.bounds, newBin.trajCt/10, isKey)]
         else:
             binFacts = []
             for child in newBin.children:
@@ -139,7 +148,7 @@ class Octree(object):
         if newBin == None:
             newBin = self.firstLevel
         if len(newBin.children)==0:
-            if newBin.trajCt > 2:
+            if newBin.trajCt > 2 and newBin.depth == self.minDepth:
                 bds = newBin.bounds
                 return [[bds.midX,bds.midY]]
             else:
@@ -149,4 +158,26 @@ class Octree(object):
             for child in newBin.children:
                 keyBins.extend(self.getKdSubsamplePoints(child))
             return keyBins
+
+    def compare(self, compOct):
+        myBin = self.firstLevel
+        binComp = compOct.firstLevel
+        return self.compBins(myBin,binComp)
+
+    def compBins(self, myBin,binComp):
+        if len(myBin.children) != len(binComp.children):
+            print("Something Worse is happening")
+            return False
+        elif len(myBin.children)==0:
+            ct = (myBin.trajCt == binComp.trajCt)
+            if ct == False:
+                print("Dynamic Count: " , myBin.trajCt)
+                print("Static Count: " , binComp.trajCt)
+            return ct
+        else:
+            for idx,child in enumerate(myBin.children):
+                temp = self.compBins(child,binComp.children[idx])
+                if not temp:
+                    return temp
+        return True
 
