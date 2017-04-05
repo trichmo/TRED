@@ -148,7 +148,7 @@ class Octree(object):
         if newBin == None:
             newBin = self.firstLevel
         if len(newBin.children)==0:
-            if newBin.trajCt > 2 and newBin.depth == self.minDepth:
+            if newBin.trajCt >= 3 and newBin.depth == self.minDepth:
                 bds = newBin.bounds
                 return [[bds.midX,bds.midY]]
             else:

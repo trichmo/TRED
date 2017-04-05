@@ -4,6 +4,7 @@ from TopologyFunctionality.Helper import TimeDelayEmbeddingUtil as tde
 from TopologyFunctionality.Helper import OctreeUtil as ou
 from TopologyFunctionality.Octree import Octree
 from TopologyFunctionality.Octree import Bounds
+from TopologyFunctionality.Octree import Point
 import Subsampling as ss
 import numpy as np
 import matplotlib.patches as patches
@@ -26,13 +27,17 @@ class Image(object):
         #[self.x,self.y, self.tauX] = tde.getPhaseData(self.wave, self.waveStart, self.waveEnd)
 
         self.points=[]
+        self.x = []
+        self.y = []
         for idx in self.wave:
-            if i[0] == -1:
-                Point.startNewTrajectory()
+            x = float(idx[0])
+            if x == -1:
+                Point.Point.startNewTrajectory()
             else:
-                x = float(i[0])
-                y = [float(i[1])
-                self.points.append(ou.getPointObjects(x,y))
+                y = float(idx[1])
+                self.points.append(ou.getPointObject(x,y))
+                self.x.append(x)
+                self.y.append(y)
                 
 ##        self.x = ss.getBaseWindow(self.allx,-2)
 ##        self.x.extend(ss.getBaseWindow(self.allx,-1))
@@ -50,14 +55,12 @@ class Image(object):
 ##        self.newX = []
 ##        self.newY = []
 ##        self.points = ou.getPointObjects(self.x,self.y)
-        self.oct = Octree.Octree(5, Bounds.Bounds(0,0,-1,321,481,1))
+        self.oct = Octree.Octree(8, Bounds.Bounds(0,0,-1,321,481,1))
         start = time.perf_counter()
         self.oct.createOctree(self.points,True)
         self.drawScatter()
         self.drawOctree()
         self.ax.set(adjustable='box-forced', aspect='equal')
-        self.ax.set_ylim(-1.5,1.5)
-        self.ax.set_xlim(-1.5,1.5)
         np.vectorize(lambda ax:ax.axis('off'))(ax)
         self.fig.canvas.draw()
         print(time.perf_counter()-start)
@@ -65,9 +68,9 @@ class Image(object):
     def drawScatter(self):
         orig = self.ax.scatter(self.x,self.y,color='k')
         #plt.setp(orig,linewidth=1)
-        old = self.ax.scatter(self.oldX,self.oldY,color='r')
+        #old = self.ax.scatter(self.oldX,self.oldY,color='r')
         #plt.setp(old,linewidth=1)
-        new = self.ax.scatter(self.newX,self.newY,color='c')
+        #new = self.ax.scatter(self.newX,self.newY,color='c')
         #plt.setp(new,linewidth=1)
         tempX=[]
         tempY=[]
@@ -100,8 +103,6 @@ class Image(object):
                     writer.writerow(point)
         plt.cla()
         plt.axis('equal')
-        self.ax.set_ylim(-1.5,1.5)
-        self.ax.set_xlim(-1.5,1.5)
         self.drawScatter()
         self.drawOctree()
         np.vectorize(lambda ax:ax.axis('off'))(ax)

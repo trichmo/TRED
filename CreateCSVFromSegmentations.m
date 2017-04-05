@@ -1,5 +1,5 @@
 pixels=[]
-for i = 1:length(BoundaryList)
+for i = 1:20
     segmentation = BoundaryList(i).PixelList;
     for j = 1:length(segmentation)
        region = segmentation{j};

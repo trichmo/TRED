@@ -13,6 +13,10 @@ def getPointObjects(x,y):
 		pointObjs.append(newObj)
 	return pointObjs
 
+def getPointObject(x,y):
+	pointObjs = []
+	return Point(x,y,0)
+
 def copyPointObjects(points):
         retPts = []
         for point in points:
