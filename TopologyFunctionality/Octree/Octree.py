@@ -6,7 +6,9 @@ import pdb
 
 class Octree(object):
 
-    def __init__(self, minDepth, bounds = []):
+    def __init__(self, minDepth, bounds = [], trajThresh=3, trajMax = 10):
+        self.trajMax = trajMax
+        self.trajThreshold = trajThresh
         self.firstLevel = []
         self.bounds = bounds
         self.points = []
@@ -55,7 +57,7 @@ class Octree(object):
 
     def manageBinMerge(self, editedBin):
         editedParent = editedBin.parent
-        if (editedParent.trajCt < 3 or not editedParent.checkAncestorsTraj()) and editedBin.depth>2:
+        if (editedParent.trajCt < self.trajThreshold or not editedParent.checkAncestorsTraj()) and editedBin.depth>=self.trajThreshold:
             siblingPts = ou.getChildPtCount(editedParent)
             if self.splitPtThresh>(siblingPts/len(self.points)):
                 editedParent.mergeChildren()
@@ -124,19 +126,41 @@ class Octree(object):
         
 
     def splitBin(self,newBin):
-        if ((newBin.trajCt >= 3 and newBin.checkAncestorsTraj()) or
+        if ((newBin.trajCt >= self.trajThreshold and newBin.checkAncestorsTraj()) or
         (len(newBin.points)/len(self.points) > self.splitPtThresh)):
             if newBin.depth < self.minDepth:
                 newBin.divide()
                 for child in newBin.children:
                     self.splitBin(child)
 
+    def getDualScaleBins(self,newBin):
+        if len(newBin.children)==0:
+            isKey = 0
+            if newBin.depth == self.minDepth and newBin.trajCt >= self.trajThreshold:
+                isKey=1
+            return [(newBin.bounds, newBin.trajCt/self.trajMax, isKey)],[]
+        else:
+            binFacts = []
+            checkExtendedFamily=[]
+            keyCt = 0 
+            for child in newBin.children:
+                newFacts,newChecks = self.getDualScaleBins(child)
+                keyCt += newFacts[0][2]
+                binFacts.extend(newFacts)
+                checkExtendedFamily.extend(newChecks)
+            if keyCt==0 and newBin.depth == self.minDepth-1:
+                if  newBin.trajCt >= self.trajThreshold:
+                    binFacts = [(newBin.bounds, newBin.trajCt/self.trajMax, 1)]
+                elif newBin.trajCt > 0:
+                    checkExtendedFamily = newBin
+            return binFacts, checkExtendedFamily
+
     def drawBins(self, newBin):
         if len(newBin.children)==0:
             isKey = 0
-            if newBin.depth == self.minDepth and newBin.trajCt >= 3:
+            if newBin.depth == self.minDepth and newBin.trajCt >= self.trajThreshold:
                 isKey=1
-            return [(newBin.bounds, newBin.trajCt/10, isKey)]
+            return [(newBin.bounds, newBin.trajCt/self.trajMax, isKey)]
         else:
             binFacts = []
             for child in newBin.children:
@@ -148,7 +172,7 @@ class Octree(object):
         if newBin == None:
             newBin = self.firstLevel
         if len(newBin.children)==0:
-            if newBin.trajCt >= 3 and newBin.depth == self.minDepth:
+            if newBin.trajCt >= self.trajThreshold and newBin.depth == self.minDepth:
                 bds = newBin.bounds
                 return [[bds.midX,bds.midY]]
             else:

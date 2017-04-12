@@ -201,3 +201,102 @@ def getChildPtCount(parent):
                 else:
                         childpts = childpts + len(child.points)
         return childpts
+
+def getExtendedFamilyShifts(pendingBinsList):
+        parentDict, grandParentDict = buildAncestorDictionaries(pendingBinsList)
+        parentShifts = []
+        parentShifts.extend(getShifts(parentDict))
+        grandParentShifts = getShifts(grandParentDict)
+        return parentShifts.extend(grandParentShifts)
+
+                        
+def getShifts(checkDict):
+        shifts = []
+        for checkBin in checkDict.keys():
+                children = checkDict[checkBin]
+                if len(children) > 1:
+                        sets = getShiftSets(children)
+                        for bounds, trajCt in shiftBins:
+                                shifts.append((bounds,trajCt,1)) 
+        return shifts
+                        
+                        
+
+def getShiftBins(children):
+        shiftBins = []
+        for i in len(children):
+                for j in range(i+1,len(children)):
+                        bin1 = children[i]
+                        bin2 = children[j]
+                        if bin1.bounds.midX == bin2.bounds.midX:
+                                minY = min(bin1.bounds.midY, bin2.bounds.midY)
+                                maxY = max(bin1.bounds.midY, bin2.bounds.midY)
+                                bounds = Bounds.Bounds(bin1.bounds.minX,minY,bin1.bounds.minZ,bin1.bounds.maxX,maxY,bin1.bounds.maxZ)
+                                isX=True
+                        elif bin1.bounds.midY == bin2.bounds.midY:
+                                minX = min(bin1.bounds.midX, bin2.bounds.midX)
+                                maxX = max(bin1.bounds.midX, bin2.bounds.midX)
+                                bounds = Bounds.Bounds(minX,bin1.bounds.minY,bin1.bounds.minZ,maxX,bin1.bounds.maxY,bin1.bounds.maxZ)
+                                isX=False
+                        else:
+                                continue
+                        points = getInterestPoints(bin1,bin2,bounds,isX)
+                        trajCt = getTrajectoryCountFromPointList(points)
+                        shiftBins.append((bounds, trajCt))
+        return shiftBins
+
+def getInterestPoints(bin1,bin2,bounds,isX):
+        idx1 = []
+        idx2 = []
+        points = []
+        if isX:
+                idx1.append(bin1.findIndex(Point.Point(bounds.minX,bounds.midY,bounds.minZ)))
+                idx1.append(bin1.findIndex(Point.Point(bounds.maxX,bounds.midY,bounds.minZ)))
+                idx1.append(bin1.findIndex(Point.Point(bounds.minX,bounds.midY,bounds.maxZ)))
+                idx1.append(bin1.findIndex(Point.Point(bounds.maxX,bounds.midY,bounds.maxZ)))
+                idx2.append(bin2.findIndex(Point.Point(bounds.minX,bounds.midY,bounds.minZ)))
+                idx2.append(bin2.findIndex(Point.Point(bounds.maxX,bounds.midY,bounds.minZ)))
+                idx2.append(bin2.findIndex(Point.Point(bounds.minX,bounds.midY,bounds.maxZ)))
+                idx2.append(bin2.findIndex(Point.Point(bounds.maxX,bounds.midY,bounds.maxZ)))
+        else:
+                idx1.append(bin1.findIndex(Point.Point(bounds.midX,bounds.minY,bounds.minZ)))
+                idx1.append(bin1.findIndex(Point.Point(bounds.midX,bounds.maxY,bounds.minZ)))
+                idx1.append(bin1.findIndex(Point.Point(bounds.midX,bounds.minY,bounds.maxZ)))
+                idx1.append(bin1.findIndex(Point.Point(bounds.midX,bounds.maxY,bounds.maxZ)))
+                idx2.append(bin2.findIndex(Point.Point(bounds.midX,bounds.minY,bounds.minZ)))
+                idx2.append(bin2.findIndex(Point.Point(bounds.midX,bounds.maxY,bounds.minZ)))
+                idx2.append(bin2.findIndex(Point.Point(bounds.midX,bounds.minY,bounds.maxZ)))
+                idx2.append(bin2.findIndex(Point.Point(bounds.midX,bounds.maxY,bounds.maxZ)))
+        for idx in idx1:
+                points.extend(bin1.children[idx].points)
+        for idx in idx2:
+                points.extend(bin2.children[idx].points)
+        return points
+        
+def getTrajectoryCountFromPointList(points):
+        points.sort()
+        trajCt = 0
+        prevPt = -10
+        for point in points:
+                if point.pointId != prevPt:
+                        trajCt += 1
+                prevPt = point.pointId
+        return trajCt
+        
+
+def buildAncestorDictionaries(pendingBinsList):
+        parentDict = dict([])
+        grandParentDict = dict([])
+        for child in pendingBinsList:
+                parent = child.parent
+                grandparent = parent.parent
+                if parent not in parentDict:
+                        parentDict[parent] = [child]
+                else:
+                        parentDict[parent].append(child)
+                if grandparent not in grandParentDict:
+                        grandParentDict[grandparent] = [child]
+                else:
+                        grandParentDict[grandparent].append(child)
+        return parentDict, grandParentDict
+                

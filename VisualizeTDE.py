@@ -133,7 +133,11 @@ class Image(object):
             
             
     def drawOctree(self):
-        binFacts = self.oct.drawBins(self.oct.firstLevel)
+        binFacts, checkExtendedFamily = self.oct.getDualScaleBins(self.oct.firstLevel)
+        shiftFacts = ou.getExtendedFamilyShifts(checkExtendedFamily)
+        if shiftFacts is not None:
+            binFacts.extend(shiftFacts)
+        #binFacts = self.oct.drawBins(self.oct.firstLevel)
         for bounds, intensity, isKey in binFacts:
             #if intensity!=0:
             if intensity>1:
