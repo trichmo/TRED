@@ -6,7 +6,7 @@ import pdb
 
 class Octree(object):
 
-    def __init__(self, minDepth, bounds = [], trajThresh=3, trajMax = 10):
+    def __init__(self, minDepth, bounds = [], trajThresh=400, trajMax = 800):
         self.trajMax = trajMax
         self.trajThreshold = trajThresh
         self.firstLevel = []

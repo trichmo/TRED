@@ -55,7 +55,7 @@ class Image(object):
 ##        self.newX = []
 ##        self.newY = []
 ##        self.points = ou.getPointObjects(self.x,self.y)
-        self.oct = Octree.Octree(8, Bounds.Bounds(0,0,-1,321,481,1))
+        self.oct = Octree.Octree(6, Bounds.Bounds(0,0,-1,256,256,1), 500, 800)
         start = time.perf_counter()
         self.oct.createOctree(self.points,True)
         self.drawScatter()
@@ -66,7 +66,7 @@ class Image(object):
         print(time.perf_counter()-start)
         
     def drawScatter(self):
-        orig = self.ax.scatter(self.x,self.y,color='k')
+        orig = self.ax.scatter(self.x,self.y,color='k',s=1)
         #plt.setp(orig,linewidth=1)
         #old = self.ax.scatter(self.oldX,self.oldY,color='r')
         #plt.setp(old,linewidth=1)
