@@ -18,7 +18,7 @@ class Image(object):
         self.ax = ax
         #self.wave = np.array(Startup())
 
-        self.wave = ss.getPointsFromFile()
+        self.wave = ss.getMapPoints()
         self.waveLength = len(self.wave)
 
         self.waveStart = 0
@@ -29,12 +29,24 @@ class Image(object):
         self.points=[]
         self.x = []
         self.y = []
+        self.maxX = float("-inf")
+        self.maxY = float("-inf")
+        self.minX = float("inf")
+        self.minY = float("inf")
         for idx in self.wave:
             x = float(idx[0])
             if x == -1:
                 Point.Point.startNewTrajectory()
             else:
                 y = float(idx[1])
+                if y>self.maxY:
+                    self.maxY=y
+                if y<self.minY:
+                    self.minY=y
+                if x>self.maxX:
+                    self.maxX=x
+                if x<self.minX:
+                    self.minX=x
                 self.points.append(ou.getPointObject(x,y))
                 self.x.append(x)
                 self.y.append(y)
@@ -55,7 +67,7 @@ class Image(object):
 ##        self.newX = []
 ##        self.newY = []
 ##        self.points = ou.getPointObjects(self.x,self.y)
-        self.oct = Octree.Octree(6, Bounds.Bounds(0,0,-1,256,256,1), 500, 800)
+        self.oct = Octree.Octree(8, Bounds.Bounds(self.minX,self.minY,-1,self.maxX,self.maxY,1), 35, 100)
         start = time.perf_counter()
         self.oct.createOctree(self.points,True)
         self.drawScatter()
@@ -103,7 +115,7 @@ class Image(object):
                     writer.writerow(point)
         plt.cla()
         plt.axis('equal')
-        self.drawScatter()
+        #self.drawScatter()
         self.drawOctree()
         np.vectorize(lambda ax:ax.axis('off'))(ax)
         self.fig.canvas.draw()

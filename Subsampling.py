@@ -1,6 +1,7 @@
 from TopologyFunctionality.Helper import OctreeUtil as ou
 from TopologyFunctionality.Octree import Octree as oct
 import csv
+import os
 from math import floor
 
 def getKdSubsampling(bounds,points):
@@ -15,6 +16,15 @@ def getPointsFromFile():
     with open('topology.csv','r',newline='') as csvfile:
         reader = csv.reader(csvfile)
         dataStream = list(reader)
+    return dataStream
+
+def getMapPoints():
+    dataStream = []
+    for filename in os.listdir('.\\map\\data\\tracks\\tracks_berlin_large\\berlin_large\\trips'):
+        with open('.\\map\\data\\tracks\\tracks_berlin_large\\berlin_large\\trips\\'+filename,'r') as f:
+            reader = csv.reader(f,delimiter=' ')
+            dataStream.extend(list(reader))
+        dataStream.append((-1,-1,-1))
     return dataStream
 
 def getBaseWindow(dim, i):
