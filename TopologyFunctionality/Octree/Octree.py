@@ -1,6 +1,5 @@
 from .Bounds import Bounds
 from .OctreeBin import OctreeBin
-from .TrajectorySegment import TrajectorySegment
 from TopologyFunctionality.Helper import OctreeUtil as ou 
 import pdb
 
@@ -37,21 +36,22 @@ class Octree(object):
         self.points = points
 
     def handleBinEnds(self,oldFirst,newFirst):
-        currBin = self.firstLevel
-        for binNo in oldFirst.binPath:
-            currBin = currBin.children[binNo]
+        currBin = oldFirst.lowestBin
+        currBin.decrementTrajectoryCount()
+        while currBin.parent is not None:
+            currBin = currBin.parent
             currBin.decrementTrajectoryCount()
             
-        currBin = self.firstLevel
-        for binNo in newFirst.binPath:
-            currBin = currBin.children[binNo]
+        currBin = newFirst.lowestBin
+        while currBin.parent is not None:
+            currBin = currBin.parent
             currBin.incrementTrajectoryCount()
 
     def killPoints(self, removal):
         for point in removal:
             for traj in point.trajectories:
                 traj.killTrajectory(self.firstLevel)   
-            editBin = ou.getBin(self.firstLevel,point.binPath)
+            editBin = point.lowestBin
             editBin.removePoint(point)
             self.manageBinMerge(editBin)
 
@@ -112,8 +112,8 @@ class Octree(object):
         for point in points:
             if isSyncWithBin:
                 ou.syncNewPointWithBin(point,self.firstLevel,lastPoint)
-            bin1 = ou.getBin(self.firstLevel,lastPoint.binPath)
-            bin2 = ou.getBin(self.firstLevel,point.binPath)
+            bin1 = lastPoint.lowestBin
+            bin2 = point.lowestBin
             if bin1 != bin2:
                 ou.addTrajectory(lastPoint, point,bin1,bin2)
                 self.splitBin(bin2)

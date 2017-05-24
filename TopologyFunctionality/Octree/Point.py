@@ -7,7 +7,7 @@ class Point(object):
                 self.X = X
                 self.Y = Y
                 self.Z = Z      
-                self.binPath=[]
+                self.lowestBin=None
                 self.trajectories = []
                 self.pointId = Point.pointId
                 Point.pointId += 1 
@@ -28,11 +28,12 @@ class Point(object):
         def __repr__(self):
                 return "%f %f %f" % (self.X,self.Y,self.Z)
                 
-        def addToBinPath(self, bins):
-                self.binPath.extend(bins)
                 
-        def shortenBinPath(self, num):
-                del self.binPath[-num:]
+        def updateBin(self, bin):
+            self.lowestBin = bin
+        
+        def updateBinToParent(self):
+            self.lowestBin = self.lowestBin.parent
 
         @staticmethod
         def startNewTrajectory():
@@ -53,18 +54,19 @@ class Point(object):
         def findClosestRelative(self, points):
                 closestRelative = points[0]
                 closestCount=0
-                myLen = len(self.binPath)
                 for point in points:
-                        currCount=0
-                        minLen = min(myLen,len(point.binPath))
-                        i=0
-                        while self.binPath[i] == point.binPath[i]:
-                                currCount = currCount+1
-                                i=i+1
-                                if i==minLen:
-                                        break
-                        if currCount>closestCount:
-                                closestCount = currCount
-                                closestRelative = point
+                    lowestBin = self.getLowestBinMatch(point)
+                    depth = lowestBin.depth
+                    if depth>closestCount:
+                        closestCount = depth
+                        closestRelative = point
                 return closestRelative
                         
+        def getLowestBinMatch(self,point):
+            myBin = self.lowestBin
+            yourBin = point.lowestBin
+            myBin,yourBin = myBin.matchBinDepths(yourBin)
+            while myBin != yourBin:
+                myBin = myBin.parent
+                yourBin = yourBin.parent
+            return myBin

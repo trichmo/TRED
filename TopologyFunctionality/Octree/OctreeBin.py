@@ -12,6 +12,8 @@ class OctreeBin(object):
     def __init__(self, parent, points, bounds,depth, trajCt):
         self.children = []
         self.points = points
+        for point in points:
+            point.lowestBin = self
         self.parent = parent
         self.bounds = bounds
         self.depth = depth
@@ -31,13 +33,12 @@ class OctreeBin(object):
         if not self.arePointsSorted:
             self.sortPoints()
         prevPointId=-10
-        firstLvl = ou.getFirstLevelBin(self)
         for ptIdx,point in enumerate(self.points):
             if point.pointId-prevPointId==1:
-                bin2,newBinPath = ou.getRelaxedBinAndBinPath(firstLvl,point,self.points[ptIdx-1])
-                point.addToBinPath([newBinPath[-1]])
+                bin2 = ou.getRelaxedBin(point,self.points[ptIdx-1])
+                point.lowestBin = bin2
                 bin2.addPoints([point])
-                bin1 = ou.getBin(firstLvl,self.points[ptIdx-1].binPath)
+                bin1 = self.points[ptIdx-1].lowestBin
                 notContainedinTraj = True
                 #if the point contains a traj, check to see if other point is in traj.
                 #if so, then don't create a new one, just increment point's bin's ct
@@ -47,19 +48,20 @@ class OctreeBin(object):
                             notContainedinTraj=False
                             bin2.incrementTrajectoryCount()
                             for extraPt in traj.tempPoints:
-                                exBin = ou.incrementExtraPointBins(extraPt,firstLvl,[point, self.points[ptIdx-1]])
+                                ou.incrementExtraPointBins(extraPt)
                 if bin1 != bin2 and notContainedinTraj:
-                    ou.addTrajectory(self.points[ptIdx-1],point,bin1,bin2)
+                    ou.introduceTrajectory(self.points[ptIdx-1],point,bin1,bin2)
             #the point has to have a neighbor in another binset
             else:
                 binIdx = self.findIndex(point)
-                self.children[binIdx].addPoints([point])
-                point.addToBinPath([binIdx])
+                receivingBin = self.children[binIdx]
+                receivingBin.addPoints([point])
+                point.updateBin(receivingBin)
                 for traj in point.trajectories:
                     for extraPt in traj.tempPoints:
-                        if extraPt.binPath[:self.depth-1] == point.binPath[:self.depth-1]:
-                            exBin = ou.incrementExtraPointBins(extraPt,firstLvl,[point, self.points[ptIdx-1]])
-                myBin = ou.getBin(firstLvl,point.binPath)
+                        if extraPt.lowestBin == point.lowestBin.parent:
+                            ou.incrementExtraPointBins(extraPt)
+                myBin = point.lowestBin
                 myBin.incrementTrajectoryCount()
             prevPointId=point.pointId
         self.points=[]
@@ -74,9 +76,9 @@ class OctreeBin(object):
             child.mergeChildren()
             for point in child.points:
                 for traj in point.trajectories:
-                    if traj.front.binPath[:self.depth] == traj.back.binPath[:self.depth]:
+                    if traj.front.lowestBin.parent == traj.back.lowestBin.parent:
                         traj.killTrajectory(self)
-                point.shortenBinPath(1)
+                point.updateBinToParent()
             self.points.extend(child.points)
             child.points = []
         del self.children[:]
@@ -152,3 +154,11 @@ class OctreeBin(object):
 
     def decrementTrajectoryCount(self):
         self.trajCt = self.trajCt-1
+        
+    def matchBinDepths(self,yourBin):
+        myBin = self
+        while myBin.depth > yourBin.depth:
+                myBin = myBin.parent
+        while myBin.depth < yourBin.depth:
+            yourBin = yourBin.parent
+        return myBin,yourBin
