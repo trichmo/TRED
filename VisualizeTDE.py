@@ -13,9 +13,17 @@ import csv
 
 class Image(object):
     
-    def __init__(self,fig,ax):
+    def __init__(self,fig,ax,use):
         self.fig = fig
         self.ax = ax
+        if use == 'map':
+            initMapping()
+        elif use == 'activity':
+            initActivityRecognition()
+        else:
+            print('Please enter expected use')
+            return
+        
         #self.wave = np.array(Startup())
 
         self.wave = ss.getMapPoints()
@@ -33,10 +41,11 @@ class Image(object):
         self.maxY = float("-inf")
         self.minX = float("inf")
         self.minY = float("inf")
+        prevPt = None
         for idx in self.wave:
             x = float(idx[0])
             if x == -1:
-                Point.Point.startNewTrajectory()
+                prevPt = None
             else:
                 y = float(idx[1])
                 if y>self.maxY:
@@ -47,9 +56,13 @@ class Image(object):
                     self.maxX=x
                 if x<self.minX:
                     self.minX=x
-                self.points.append(ou.getPointObject(x,y))
+                newPt = ou.getPointObject(x,y,prevPt)
+                if prevPt!=None:
+                    prevPt.setNext(newPt)
+                self.points.append(newPt)
                 self.x.append(x)
                 self.y.append(y)
+                prevPt = newPt
                 
 ##        self.x = ss.getBaseWindow(self.allx,-2)
 ##        self.x.extend(ss.getBaseWindow(self.allx,-1))
@@ -77,6 +90,63 @@ class Image(object):
         self.fig.canvas.draw()
         print(time.perf_counter()-start)
         
+    def initMapping():
+        self.wave = ss.getMapPoints()
+        self.waveLength = len(self.wave)
+
+        self.waveStart = 0
+        self.waveEnd = tde.getWaveEnd(self.waveStart)
+
+        self.points=[]
+        self.x = []
+        self.y = []
+        self.maxX = float("-inf")
+        self.maxY = float("-inf")
+        self.minX = float("inf")
+        self.minY = float("inf")
+        prevPt = None
+        for idx in self.wave:
+            x = float(idx[0])
+            if x == -1:
+                prevPt = None
+            else:
+                y = float(idx[1])
+                if y>self.maxY:
+                    self.maxY=y
+                if y<self.minY:
+                    self.minY=y
+                if x>self.maxX:
+                    self.maxX=x
+                if x<self.minX:
+                    self.minX=x
+                newPt = ou.getPointObject(x,y,prevPt)
+                if prevPt!=None:
+                    prevPt.setNext(newPt)
+                self.points.append(newPt)
+                self.x.append(x)
+                self.y.append(y)
+                prevPt = newPt
+        midX = (self.maxX + self.minX)/2
+        midY = (self.maxY + self.minY)/2
+        halfSide = max(maxX-midX,maxY-midY)
+        self.oct = Octree.Octree(8, Bounds.Bounds(self.midX-halfSide,self.midY-halfSide,-1,self.midX+halfSide,self.midY+halfSide,1), 35, 100)
+        start = time.perf_counter()
+        self.oct.createOctree(self.points,True)
+        print(time.perf_counter()-start)
+        self.drawScatter()
+        self.drawOctree()
+        self.ax.set(adjustable='box-forced', aspect='equal')
+        np.vectorize(lambda ax:ax.axis('off'))(ax)
+        self.fig.canvas.draw()
+        
+    def initActivityRecognition():
+        self.wave = ss.getPointsFromFile()
+        self.waveLength = len(self.wave)
+        self.waveStart = 0
+        self.waveEnd = tde.getWaveEnd(self.waveStart)
+        [self.x,self.y,self.tauX] = tde.getPhaseData(self.wave,self.waveStart,self.waveEnd)
+        
+        
     def drawScatter(self):
         orig = self.ax.scatter(self.x,self.y,color='k',s=1)
         #plt.setp(orig,linewidth=1)
@@ -91,7 +161,7 @@ class Image(object):
         if event.key not in ('n', 'p','k'):
             return
         if event.key == 'n':
-            self.oldX = self.x[:100]
+            """self.oldX = self.x[:100]
             self.oldY = self.y[:100]
             self.newX = np.array(ss.getWindow(self.allx,self.iterationx))
             self.newY = np.array(ss.getWindow(self.ally,self.iterationy))
@@ -100,7 +170,7 @@ class Image(object):
             self.iterationx += 1
             self.iterationy += 1
             newPoints = ou.getPointObjects(self.newX,self.newY)
-            self.oct.appendPoints(newPoints)
+            self.oct.appendPoints(newPoints)"""
             #self.slideWindow(15)
             self.points, isEqual = self.test(self.oct,self.points,newPoints)
         #elif event.key == 'p':
@@ -163,10 +233,10 @@ class Image(object):
             
 
     def test(self,octDyn,pts,newPts):
-        #pts[len(newPts):].extend(newPts)
-        #staticPts = ou.copyPointObjects(pts)
-        #octStatic = Octree.Octree(5,octDyn.bounds)
-        #octStatic.createOctree(staticPts,True)
+        pts[len(newPts):].extend(newPts)
+        staticPts = ou.copyPointObjects(pts)
+        octStatic = Octree.Octree(8, octDyn.bounds, 35, 100)
+        octStatic.createOctree(staticPts,True)
         
 ##        myfig, myax = plt.subplots(1,1)
 ##        plt.cla()
@@ -176,8 +246,8 @@ class Image(object):
 ##        myax.scatter([point.X for point in octDyn.points],[point.Y for point in octDyn.points],color='k')
 ##        plt.show()
         
-        #isEqual = octDyn.compare(octStatic)
-        #print(isEqual)
+        isEqual = octDyn.compare(octStatic)
+        print(isEqual)
         isEqual = True
         return pts, isEqual
     
