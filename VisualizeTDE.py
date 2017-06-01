@@ -5,6 +5,7 @@ from TopologyFunctionality.Helper import OctreeUtil as ou
 from TopologyFunctionality.Octree import Octree
 from TopologyFunctionality.Octree import Bounds
 from TopologyFunctionality.Octree import Point
+import math
 import Subsampling as ss
 import numpy as np
 import matplotlib.patches as patches
@@ -16,6 +17,9 @@ class Image(object):
     def __init__(self,fig,ax,use):
         self.fig = fig
         self.ax = ax
+        self.points=[]
+        self.x = []
+        self.y = []
         if use == 'map':
             initMapping()
         elif use == 'activity':
@@ -23,6 +27,13 @@ class Image(object):
         else:
             print('Please enter expected use')
             return
+        self.drawScatter()
+        self.drawOctree()
+        self.ax.set(adjustable='box-forced', aspect='equal')
+        np.vectorize(lambda ax:ax.axis('off'))(ax)
+        self.fig.canvas.draw()
+        
+        
         
         #self.wave = np.array(Startup())
 
@@ -42,6 +53,7 @@ class Image(object):
         self.minX = float("inf")
         self.minY = float("inf")
         prevPt = None
+        
         for idx in self.wave:
             x = float(idx[0])
             if x == -1:
@@ -97,17 +109,37 @@ class Image(object):
         self.waveStart = 0
         self.waveEnd = tde.getWaveEnd(self.waveStart)
 
-        self.points=[]
-        self.x = []
-        self.y = []
+        (tmpX, tmpY) = zip(*[(point[0],point[1]) for point in self.wave])
+        bounds = getBoundsCreatePoints(tmpX,tmpY)
+        #insert equation for determining depth from half side and noise level here
+        #what should we do about determining the key bin threshold (expected number of paths?)
+        self.oct = Octree.Octree(8, bounds, 35, 100)
+        start = time.perf_counter()
+        self.oct.createOctree(self.points,True)
+        print(time.perf_counter()-start)
+
+        
+    def initActivityRecognition():
+        self.wave = ss.getPointsFromFile()
+        self.waveLength = len(self.wave)
+        self.waveStart = 0
+        self.waveEnd = tde.getWaveEnd(self.waveStart)
+        [tempx,tempy,self.tauX] = tde.getPhaseData(self.wave,self.waveStart,self.waveEnd)
+        bounds = getBoundsCreatePoints(tempx,tempy)
+        self.oct = Octree.Octree(5,bounds,5,10)
+        start = time.perf_counter()
+        self.oct.createOctree(self.points,True)
+        print(time.perf_counter()-start)
+        
+    def getBoundsCreatePoints(self,x,y):
         self.maxX = float("-inf")
         self.maxY = float("-inf")
         self.minX = float("inf")
         self.minY = float("inf")
         prevPt = None
-        for idx in self.wave:
-            x = float(idx[0])
-            if x == -1:
+        for idx in x:
+            x = float(x[0])
+            if math.isnan(x):
                 prevPt = None
             else:
                 y = float(idx[1])
@@ -129,23 +161,7 @@ class Image(object):
         midX = (self.maxX + self.minX)/2
         midY = (self.maxY + self.minY)/2
         halfSide = max(maxX-midX,maxY-midY)
-        self.oct = Octree.Octree(8, Bounds.Bounds(self.midX-halfSide,self.midY-halfSide,-1,self.midX+halfSide,self.midY+halfSide,1), 35, 100)
-        start = time.perf_counter()
-        self.oct.createOctree(self.points,True)
-        print(time.perf_counter()-start)
-        self.drawScatter()
-        self.drawOctree()
-        self.ax.set(adjustable='box-forced', aspect='equal')
-        np.vectorize(lambda ax:ax.axis('off'))(ax)
-        self.fig.canvas.draw()
-        
-    def initActivityRecognition():
-        self.wave = ss.getPointsFromFile()
-        self.waveLength = len(self.wave)
-        self.waveStart = 0
-        self.waveEnd = tde.getWaveEnd(self.waveStart)
-        [self.x,self.y,self.tauX] = tde.getPhaseData(self.wave,self.waveStart,self.waveEnd)
-        
+        return Bounds.Bounds(self.midX-halfSide,self.midY-halfSide,-1,self.midX+halfSide,self.midY+halfSide,1)
         
     def drawScatter(self):
         orig = self.ax.scatter(self.x,self.y,color='k',s=1)
