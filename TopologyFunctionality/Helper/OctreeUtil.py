@@ -5,20 +5,24 @@ import pdb
 
 def getPointObjects(x,y):
     pointObjs = []
+    lastPt = None
     for idx in range(x.size):
         a=x[idx]
         b=y[idx]
-        newObj = Point(a,b,0)
+        newObj = Point(a,b,0,lastPt)
         pointObjs.append(newObj)
+        lastPt.setNext(newObj)
+        lastPt = newObj
     return pointObjs
 
-def getPointObject(x,y):
-    return Point(x,y,0)
+def getPointObject(x,y,prevPt=None):
+    return Point(x,y,0,prevPt)
 
 def copyPointObjects(points):
     retPts = []
     for point in points:
-        retPts.append(Point(point.X,point.Y,point.Z))
+        newPt = Point(point.X,point.Y,point.Z,point.prev,point.nxt)
+        retPts.append(newPt)
     return retPts
 
 def getPointObsFromSingleSrc(points):
@@ -246,13 +250,12 @@ def getInterestPoints(bin1,bin2,bounds,isX):
     return points
         
 def getTrajectoryCountFromPointList(points):
-    points.sort()
     trajCt = 0
-    prevPt = -10
+    prevPt = None
     for point in points:
-        if point.pointId != prevPt:
+        if point.prev != prevPt:
             trajCt += 1
-        prevPt = point.pointId
+        prevPt = point
     return trajCt
         
 

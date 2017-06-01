@@ -18,7 +18,6 @@ class OctreeBin(object):
         self.bounds = bounds
         self.depth = depth
         self.trajCt = trajCt
-        self.arePointsSorted = True
         self.relaxedEpsilon = 0.05
 
     def __repr__(self):
@@ -30,27 +29,25 @@ class OctreeBin(object):
             pts=[]
             newChild = OctreeBin(self,pts,childBound, self.depth+1,0)
             self.children.append(newChild)
-        if not self.arePointsSorted:
-            self.sortPoints()
-        prevPointId=-10
+        prevPoint=None
         for ptIdx,point in enumerate(self.points):
-            if point.pointId-prevPointId==1:
-                bin2 = ou.getRelaxedBin(point,self.points[ptIdx-1])
+            if point.prev==prevPoint and prevPoint!=None:
+                bin2 = ou.getRelaxedBin(point,prevPoint)
                 point.lowestBin = bin2
                 bin2.addPoints([point])
-                bin1 = self.points[ptIdx-1].lowestBin
+                bin1 = prevPoint.lowestBin
                 notContainedinTraj = True
                 #if the point contains a traj, check to see if other point is in traj.
                 #if so, then don't create a new one, just increment point's bin's ct
                 if point.trajectories:
                     for traj in point.trajectories:
-                        if traj.contains(self.points[ptIdx-1]):
+                        if traj.contains(prevPoint):
                             notContainedinTraj=False
                             bin2.incrementTrajectoryCount()
                             for extraPt in traj.tempPoints:
                                 ou.incrementExtraPointBins(extraPt)
                 if bin1 != bin2 and notContainedinTraj:
-                    ou.introduceTrajectory(self.points[ptIdx-1],point,bin1,bin2)
+                    ou.introduceTrajectory(prevPoint,point,bin1,bin2)
             #the point has to have a neighbor in another binset
             else:
                 binIdx = self.findIndex(point)
@@ -63,15 +60,10 @@ class OctreeBin(object):
                             ou.incrementExtraPointBins(extraPt)
                 myBin = point.lowestBin
                 myBin.incrementTrajectoryCount()
-            prevPointId=point.pointId
+            prevPoint=point
         self.points=[]
 
-    def sortPoints(self):
-        self.points.sort()
-        self.arePointsSorted=True
-
     def mergeChildren(self):
-        self.arePointsSorted=False
         for child in self.children:
             child.mergeChildren()
             for point in child.points:
