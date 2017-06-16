@@ -5,9 +5,11 @@ from TopologyFunctionality.Helper import OctreeUtil as ou
 from TopologyFunctionality.Octree import Octree
 import Subsampling as ss
 import numpy as np
+import math
 import matplotlib.patches as patches
 import time
 import csv
+import msvcrt as m
 
 class Image(object):
     
@@ -15,51 +17,66 @@ class Image(object):
         self.fig = fig
         self.ax = ax
         #self.wave = np.array(Startup())
+        i=0
+        self.windows = ss.getWindowedPoints()
+        totTime=0
+        for window in self.windows:
+            self.wave = window
+            self.waveLength = len(self.wave)
 
-        self.wave = ss.getPointsFromFile()
-        self.waveLength = len(self.wave)
+            self.waveStart = 0
+            self.waveEnd = tde.getWaveEnd(self.waveStart)
 
-        self.waveStart = 0
-        self.waveEnd = tde.getWaveEnd(self.waveStart)
-        #self.waveLength = self.wave.size
-        #[self.x,self.y, self.tauX] = tde.getPhaseData(self.wave, self.waveStart, self.waveEnd)
-
-        self.allx = [float(i[0]) for i in self.wave]
-        self.ally = [float(i[1]) for i in self.wave]
-        self.x = ss.getBaseWindow(self.allx,-2)
-        self.x.extend(ss.getBaseWindow(self.allx,-1))
-        self.y = ss.getBaseWindow(self.ally,-2)
-        self.y.extend(ss.getBaseWindow(self.ally,-1))
-        self.x = np.array(self.x)
-        self.y = np.array(self.y)
-        self.iterationx = 0
-        self.iterationy = 0
-        self.sampleNo = 0
+            self.x = [float(i[0]) for i in self.wave]
+            self.y = [float(i[1]) for i in self.wave]
+            self.z = [float(i[2]) for i in self.wave]
+##            self.x = ss.getBaseWindow(self.allx,-2)
+##            self.x.extend(ss.getBaseWindow(self.allx,-1))
+##            self.y = ss.getBaseWindow(self.ally,-2)
+##            self.y.extend(ss.getBaseWindow(self.ally,-1))
+            self.x = np.array(self.x)
+            self.y = np.array(self.y)
+            self.z = np.array(self.z)
+##            self.iterationx = 0
+##            self.iterationy = 0
+##            self.sampleNo = 0
+##            
+##
+##            self.oldX = []
+##            self.oldY = []
+##            self.newX = []
+##            self.newY = []
+            self.points = ou.getPointObjects(self.x,self.y,self.z)
+            binThreshold = math.ceil(1000/len(self.points))
+            binThreshold = min(3,binThreshold)
+            start = time.perf_counter()
+            self.oct = Octree.Octree(4,binThreshold)
+            self.oct.createOctree(self.points,False)
+            #self.drawScatter()
+            #self.drawOctree()
+            #self.ax.set(adjustable='box-forced', aspect='equal')
+            #self.ax.set_ylim(-1.5,1.5)
+            #self.ax.set_xlim(-1.5,1.5)
+            #np.vectorize(lambda ax:ax.axis('off'))(ax)
+            #self.fig.canvas.draw()
+            totTime = totTime + (time.perf_counter() - start)
+            i=i+1
+            #print(i)
+            sample = self.oct.getKdSubsamplePoints()
+            with open('joint'+str((i%4)+1)+'window'+str(math.ceil((i+1)//4))+'.csv', 'w', newline='') as outFile:
+                writer = csv.writer(outFile)
+                for point in sample:
+                    writer.writerow(point)
+            #m.getch()
+        print(totTime/i)
         
-
-        self.oldX = []
-        self.oldY = []
-        self.newX = []
-        self.newY = []
-        self.points = ou.getPointObjects(self.x,self.y)
-        self.oct = Octree.Octree(5)
-        start = time.perf_counter()
-        self.oct.createOctree(self.points,True)
-        self.drawScatter()
-        self.drawOctree()
-        self.ax.set(adjustable='box-forced', aspect='equal')
-        self.ax.set_ylim(-1.5,1.5)
-        self.ax.set_xlim(-1.5,1.5)
-        np.vectorize(lambda ax:ax.axis('off'))(ax)
-        self.fig.canvas.draw()
-        print(time.perf_counter()-start)
         
     def drawScatter(self):
         orig = self.ax.scatter(self.x,self.y,color='k')
         #plt.setp(orig,linewidth=1)
-        old = self.ax.scatter(self.oldX,self.oldY,color='r')
+        #old = self.ax.scatter(self.oldX,self.oldY,color='r')
         #plt.setp(old,linewidth=1)
-        new = self.ax.scatter(self.newX,self.newY,color='c')
+        #new = self.ax.scatter(self.newX,self.newY,color='c')
         #plt.setp(new,linewidth=1)
         tempX=[]
         tempY=[]
