@@ -6,12 +6,13 @@ import pdb
 
 class Octree(object):
 
-    def __init__(self, minDepth, bounds = []):
+    def __init__(self, minDepth, threshold, bounds = []):
         self.firstLevel = []
         self.bounds = bounds
         self.points = []
         self.minDepth = minDepth
         self.splitPtThresh = 0.6
+        self.trajThresh = threshold
 
     def appendPoints(self, points):
         lastPoint = self.points[-1]
@@ -55,7 +56,7 @@ class Octree(object):
 
     def manageBinMerge(self, editedBin):
         editedParent = editedBin.parent
-        if (editedParent.trajCt < 3 or not editedParent.checkAncestorsTraj()) and editedBin.depth>2:
+        if (editedParent.trajCt < self.trajThresh or not editedParent.checkAncestorsTraj()) and editedBin.depth>2:
             siblingPts = ou.getChildPtCount(editedParent)
             if self.splitPtThresh>(siblingPts/len(self.points)):
                 editedParent.mergeChildren()
@@ -124,7 +125,7 @@ class Octree(object):
         
 
     def splitBin(self,newBin):
-        if ((newBin.trajCt >= 3 and newBin.checkAncestorsTraj()) or
+        if ((newBin.trajCt >= self.trajThresh and newBin.checkAncestorsTraj()) or
         (len(newBin.points)/len(self.points) > self.splitPtThresh)):
             if newBin.depth < self.minDepth:
                 newBin.divide()
@@ -134,7 +135,7 @@ class Octree(object):
     def drawBins(self, newBin):
         if len(newBin.children)==0:
             isKey = 0
-            if newBin.depth == self.minDepth and newBin.trajCt >= 3:
+            if newBin.depth == self.minDepth and newBin.trajCt >= self.trajThresh:
                 isKey=1
             return [(newBin.bounds, newBin.trajCt/10, isKey)]
         else:
@@ -148,7 +149,7 @@ class Octree(object):
         if newBin == None:
             newBin = self.firstLevel
         if len(newBin.children)==0:
-            if newBin.trajCt > 2 and newBin.depth == self.minDepth:
+            if newBin.trajCt >= self.trajThresh and newBin.depth == self.minDepth:
                 bds = newBin.bounds
                 return [[bds.midX,bds.midY]]
             else:

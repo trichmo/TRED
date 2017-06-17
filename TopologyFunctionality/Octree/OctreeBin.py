@@ -121,7 +121,7 @@ class OctreeBin(object):
             elif self.bounds.midZ > compBin.bounds.midZ:
                 zPlane = [self.bounds.minZ]
             else:
-                xPlane = [self.bounds.maxZ]
+                zPlane = [self.bounds.maxZ]
         else:
             if self.depth < compBin.depth:
                 xPlane = [self.bounds.minX, self.bounds.maxX]

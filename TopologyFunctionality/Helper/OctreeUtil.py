@@ -4,12 +4,13 @@ from TopologyFunctionality.Octree.Bounds import Bounds
 from TopologyFunctionality.Octree.TrajectorySegment import TrajectorySegment
 import pdb
 
-def getPointObjects(x,y):
+def getPointObjects(x,y,z):
 	pointObjs = []
 	for idx in range(x.size):
 		a=x[idx]
 		b=y[idx]
-		newObj = Point(a,b,0)
+		c=z[idx]
+		newObj = Point(a,b,c)
 		pointObjs.append(newObj)
 	return pointObjs
 
