@@ -9,65 +9,78 @@ import math
 import matplotlib.patches as patches
 import time
 import csv
+import os
 import msvcrt as m
+import pdb
 
 class Image(object):
     
-    def __init__(self,fig,ax):
+    def __init__(self,fig,ax,subjectId):
         self.fig = fig
         self.ax = ax
         #self.wave = np.array(Startup())
-        i=0
-        self.windows = ss.getWindowedPoints()
-        totTime=0
-        for window in self.windows:
-            self.wave = window
-            self.waveLength = len(self.wave)
+        testortrain = ['train', 'test']
+        iterations = ['1','2','3','4']
+        #subjectId = '380'
+        for tot in testortrain:
+            for iteration in iterations:
+                saveLocation = '.\\Data\\Subject' + subjectId + '\\Subsamples_' + tot + '\\It_' +iteration + '\\'
+                self.windows = ss.getWindowedPoints(subjectId,iteration,tot)
+                i=0
+                totTime=0
+                for window in self.windows:
+                    self.wave = window
+                    self.waveLength = len(self.wave)
 
-            self.waveStart = 0
-            self.waveEnd = tde.getWaveEnd(self.waveStart)
+                    self.waveStart = 0
+                    self.waveEnd = tde.getWaveEnd(self.waveStart)
 
-            self.x = [float(i[0]) for i in self.wave]
-            self.y = [float(i[1]) for i in self.wave]
-            self.z = [float(i[2]) for i in self.wave]
-##            self.x = ss.getBaseWindow(self.allx,-2)
-##            self.x.extend(ss.getBaseWindow(self.allx,-1))
-##            self.y = ss.getBaseWindow(self.ally,-2)
-##            self.y.extend(ss.getBaseWindow(self.ally,-1))
-            self.x = np.array(self.x)
-            self.y = np.array(self.y)
-            self.z = np.array(self.z)
-##            self.iterationx = 0
-##            self.iterationy = 0
-##            self.sampleNo = 0
-##            
-##
-##            self.oldX = []
-##            self.oldY = []
-##            self.newX = []
-##            self.newY = []
-            self.points = ou.getPointObjects(self.x,self.y,self.z)
-            binThreshold = math.ceil(1000/len(self.points))
-            binThreshold = min(3,binThreshold)
-            start = time.perf_counter()
-            self.oct = Octree.Octree(4,binThreshold)
-            self.oct.createOctree(self.points,False)
-            #self.drawScatter()
-            #self.drawOctree()
-            #self.ax.set(adjustable='box-forced', aspect='equal')
-            #self.ax.set_ylim(-1.5,1.5)
-            #self.ax.set_xlim(-1.5,1.5)
-            #np.vectorize(lambda ax:ax.axis('off'))(ax)
-            #self.fig.canvas.draw()
-            totTime = totTime + (time.perf_counter() - start)
-            i=i+1
-            #print(i)
-            sample = self.oct.getKdSubsamplePoints()
-            with open('joint'+str((i%4)+1)+'window'+str(math.ceil((i+1)//4))+'.csv', 'w', newline='') as outFile:
-                writer = csv.writer(outFile)
-                for point in sample:
-                    writer.writerow(point)
-            #m.getch()
+                    self.x = [float(i[0]) for i in self.wave]
+                    self.y = [float(i[1]) for i in self.wave]
+                    self.z = [float(i[2]) for i in self.wave]
+        ##            self.x = ss.getBaseWindow(self.allx,-2)
+        ##            self.x.extend(ss.getBaseWindow(self.allx,-1))
+        ##            self.y = ss.getBaseWindow(self.ally,-2)
+        ##            self.y.extend(ss.getBaseWindow(self.ally,-1))
+                    self.x = np.array(self.x)
+                    self.y = np.array(self.y)
+                    self.z = np.array(self.z)
+        ##            self.iterationx = 0
+        ##            self.iterationy = 0
+        ##            self.sampleNo = 0
+        ##            
+        ##
+        ##            self.oldX = []
+        ##            self.oldY = []
+        ##            self.newX = []
+        ##            self.newY = []
+                    self.points = ou.getPointObjects(self.x,self.y,self.z)
+                    binThreshold = math.ceil(1000/len(self.points))
+                    binThreshold = min(3,binThreshold)
+                    start = time.perf_counter()
+                    self.oct = Octree.Octree(4,binThreshold)
+                    self.oct.createOctree(self.points,False)
+                    #self.drawScatter()
+                    #self.drawOctree()
+                    #self.ax.set(adjustable='box-forced', aspect='equal')
+                    #self.ax.set_ylim(-1.5,1.5)
+                    #self.ax.set_xlim(-1.5,1.5)
+                    #np.vectorize(lambda ax:ax.axis('off'))(ax)
+                    #self.fig.canvas.draw()
+                    totTime = totTime + (time.perf_counter() - start)
+                    #print(i)
+                    sample = self.oct.getKdSubsamplePoints()
+                    while len(sample) < 3 and self.oct.trajThresh > 1:
+                        self.oct.decreaseThreshold();
+                        sample = self.oct.getKdSubsamplePoints()
+                    if not os.path.exists(saveLocation):
+                        os.makedirs(saveLocation)
+                    with open(saveLocation + 'joint'+str((i%4)+1)+'window'+str((i//4)+1)+'.csv', 'w', newline='') as outFile:
+                        writer = csv.writer(outFile)
+                        for point in sample:
+                            writer.writerow(point)
+                    i=i+1
+                    #m.getch()
         print(totTime/i)
         
         
@@ -175,6 +188,8 @@ class Image(object):
     
 if __name__ == '__main__':
     fig, ax = plt.subplots(1,1)
-    image = Image(fig,ax)
-    fig.canvas.mpl_connect('key_press_event',image.drawPlot)
-    plt.show()
+    subjects = ['015','059','274','292','380','390','454','503','805','875','909']
+    for subject in subjects:
+        image = Image(fig,ax,subject)
+    #fig.canvas.mpl_connect('key_press_event',image.drawPlot)
+    #plt.show()

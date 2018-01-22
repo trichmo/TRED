@@ -56,7 +56,7 @@ class Octree(object):
 
     def manageBinMerge(self, editedBin):
         editedParent = editedBin.parent
-        if (editedParent.trajCt < self.trajThresh or not editedParent.checkAncestorsTraj()) and editedBin.depth>2:
+        if (editedParent.trajCt < self.trajThresh or not editedParent.checkAncestorsTraj(self.trajThresh)) and editedBin.depth>2:
             siblingPts = ou.getChildPtCount(editedParent)
             if self.splitPtThresh>(siblingPts/len(self.points)):
                 editedParent.mergeChildren()
@@ -125,7 +125,7 @@ class Octree(object):
         
 
     def splitBin(self,newBin):
-        if ((newBin.trajCt >= self.trajThresh and newBin.checkAncestorsTraj()) or
+        if ((newBin.trajCt >= self.trajThresh and newBin.checkAncestorsTraj(self.trajThresh)) or
         (len(newBin.points)/len(self.points) > self.splitPtThresh)):
             if newBin.depth < self.minDepth:
                 newBin.divide()
@@ -144,6 +144,19 @@ class Octree(object):
                 binFacts.extend(self.drawBins(child))
             return binFacts
 
+    def decreaseThreshold(self):
+        self.trajThresh = self.trajThresh - 1
+        currBin = self.firstLevel
+        self.checkNewThreshold(currBin)
+
+    def checkNewThreshold(self,currBin):
+        if len(currBin.children)==0:
+            if currBin.trajCt >= self.trajThresh:
+                self.splitBin(currBin)
+        for child in currBin.children:
+            self.checkNewThreshold(child)
+            
+
 
     def getKdSubsamplePoints(self, newBin = None):
         if newBin == None:
@@ -151,7 +164,7 @@ class Octree(object):
         if len(newBin.children)==0:
             if newBin.trajCt >= self.trajThresh and newBin.depth == self.minDepth:
                 bds = newBin.bounds
-                return [[bds.midX,bds.midY]]
+                return [[bds.midX,bds.midY,bds.midZ]]
             else:
                 return []
         else:

@@ -134,9 +134,9 @@ class OctreeBin(object):
     
         return xPlane, yPlane, zPlane
 
-    def checkAncestorsTraj(self):
+    def checkAncestorsTraj(self, trajThresh):
         if self.parent is not None:
-            return self.parent.checkAncestorsTraj() and self.trajCt >=2
+            return self.parent.checkAncestorsTraj(trajThresh) and self.trajCt >= trajThresh
         else:
             return True
 

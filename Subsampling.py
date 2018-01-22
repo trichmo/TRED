@@ -19,16 +19,17 @@ def getPointsFromFile():
         dataStream = list(reader)
     return dataStream
 
-def getWindowedPoints():
+def getWindowedPoints(subjectId,iteration,testortrain):
     dataStream = []
     convert = lambda text: int(text) if text.isdigit() else text 
-    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
-    unsortedFilenames = os.listdir('.\\Windows')
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
+    rootFile = '.\\Data\\Subject' + subjectId + '\\Windows_' + testortrain + '\\It_' +iteration
+    unsortedFilenames = os.listdir(rootFile)
     filenames = sorted(unsortedFilenames,key=alphanum_key)
     for filename in filenames:
         newStream=[]
         print(filename)
-        with open('.\\Windows\\'+filename,'r') as f:
+        with open(rootFile+'\\'+filename,'r') as f:
             reader = csv.reader(f)
             newStream.extend(list(reader))
         dataStream.append(newStream)
