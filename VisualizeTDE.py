@@ -3,6 +3,9 @@ from TopologyFunctionality.Startup import Startup
 from TopologyFunctionality.Helper import TimeDelayEmbeddingUtil as tde
 from TopologyFunctionality.Helper import OctreeUtil as ou
 from TopologyFunctionality.Octree import Octree
+from TopologyFunctionality.Octree import Bounds
+from TopologyFunctionality.Octree import Point
+import math
 import Subsampling as ss
 import numpy as np
 import math
@@ -15,9 +18,27 @@ import pdb
 
 class Image(object):
     
-    def __init__(self,fig,ax,subjectId):
+    def __init__(self,fig,ax,use):
         self.fig = fig
         self.ax = ax
+        self.points=[]
+        self.x = []
+        self.y = []
+        if use == 'map':
+            initMapping()
+        elif use == 'activity':
+            initActivityRecognition()
+        else:
+            print('Please enter expected use')
+            return
+        self.drawScatter()
+        self.drawOctree()
+        self.ax.set(adjustable='box-forced', aspect='equal')
+        np.vectorize(lambda ax:ax.axis('off'))(ax)
+        self.fig.canvas.draw()
+        
+        
+        
         #self.wave = np.array(Startup())
         testortrain = ['train', 'test']
         iterations = ['1','2','3','4']
@@ -32,60 +53,135 @@ class Image(object):
                     self.wave = window
                     self.waveLength = len(self.wave)
 
-                    self.waveStart = 0
-                    self.waveEnd = tde.getWaveEnd(self.waveStart)
 
-                    self.x = [float(i[0]) for i in self.wave]
-                    self.y = [float(i[1]) for i in self.wave]
-                    self.z = [float(i[2]) for i in self.wave]
-        ##            self.x = ss.getBaseWindow(self.allx,-2)
-        ##            self.x.extend(ss.getBaseWindow(self.allx,-1))
-        ##            self.y = ss.getBaseWindow(self.ally,-2)
-        ##            self.y.extend(ss.getBaseWindow(self.ally,-1))
-                    self.x = np.array(self.x)
-                    self.y = np.array(self.y)
-                    self.z = np.array(self.z)
-        ##            self.iterationx = 0
-        ##            self.iterationy = 0
-        ##            self.sampleNo = 0
-        ##            
-        ##
-        ##            self.oldX = []
-        ##            self.oldY = []
-        ##            self.newX = []
-        ##            self.newY = []
-                    self.points = ou.getPointObjects(self.x,self.y,self.z)
-                    binThreshold = math.ceil(1000/len(self.points))
-                    binThreshold = min(3,binThreshold)
-                    start = time.perf_counter()
-                    self.oct = Octree.Octree(4,binThreshold)
-                    self.oct.createOctree(self.points,False)
-                    #self.drawScatter()
-                    #self.drawOctree()
-                    #self.ax.set(adjustable='box-forced', aspect='equal')
-                    #self.ax.set_ylim(-1.5,1.5)
-                    #self.ax.set_xlim(-1.5,1.5)
-                    #np.vectorize(lambda ax:ax.axis('off'))(ax)
-                    #self.fig.canvas.draw()
-                    totTime = totTime + (time.perf_counter() - start)
-                    #print(i)
-                    sample = self.oct.getKdSubsamplePoints()
-                    while len(sample) < 3 and self.oct.trajThresh > 1:
-                        self.oct.decreaseThreshold();
-                        sample = self.oct.getKdSubsamplePoints()
-                    if not os.path.exists(saveLocation):
-                        os.makedirs(saveLocation)
-                    with open(saveLocation + 'joint'+str((i%4)+1)+'window'+str((i//4)+1)+'.csv', 'w', newline='') as outFile:
-                        writer = csv.writer(outFile)
-                        for point in sample:
-                            writer.writerow(point)
-                    i=i+1
-                    #m.getch()
-        print(totTime/i)
+        self.wave = ss.getMapPoints()
+        self.waveLength = len(self.wave)
+
+        self.waveStart = 0
+        self.waveEnd = tde.getWaveEnd(self.waveStart)
+        #self.waveLength = self.wave.size
+        #[self.x,self.y, self.tauX] = tde.getPhaseData(self.wave, self.waveStart, self.waveEnd)
+
+        self.points=[]
+        self.x = []
+        self.y = []
+        self.maxX = float("-inf")
+        self.maxY = float("-inf")
+        self.minX = float("inf")
+        self.minY = float("inf")
+        prevPt = None
         
+        for idx in self.wave:
+            x = float(idx[0])
+            if x == -1:
+                prevPt = None
+            else:
+                y = float(idx[1])
+                if y>self.maxY:
+                    self.maxY=y
+                if y<self.minY:
+                    self.minY=y
+                if x>self.maxX:
+                    self.maxX=x
+                if x<self.minX:
+                    self.minX=x
+                newPt = ou.getPointObject(x,y,prevPt)
+                if prevPt!=None:
+                    prevPt.setNext(newPt)
+                self.points.append(newPt)
+                self.x.append(x)
+                self.y.append(y)
+                prevPt = newPt
+                
+##        self.x = ss.getBaseWindow(self.allx,-2)
+##        self.x.extend(ss.getBaseWindow(self.allx,-1))
+##        self.y = ss.getBaseWindow(self.ally,-2)
+##        self.y.extend(ss.getBaseWindow(self.ally,-1))
+##        self.x = np.array(self.x)
+##        self.y = np.array(self.y)
+##        self.iterationx = 0
+##        self.iterationy = 0
+##        self.sampleNo = 0
+##        
+##
+##        self.oldX = []
+##        self.oldY = []
+##        self.newX = []
+##        self.newY = []
+##        self.points = ou.getPointObjects(self.x,self.y)
+        self.oct = Octree.Octree(8, Bounds.Bounds(self.minX,self.minY,-1,self.maxX,self.maxY,1), 35, 100)
+        start = time.perf_counter()
+        self.oct.createOctree(self.points,True)
+        self.drawScatter()
+        self.drawOctree()
+        self.ax.set(adjustable='box-forced', aspect='equal')
+        np.vectorize(lambda ax:ax.axis('off'))(ax)
+        self.fig.canvas.draw()
+        print(time.perf_counter()-start)
+        
+    def initMapping():
+        self.wave = ss.getMapPoints()
+        self.waveLength = len(self.wave)
+
+        self.waveStart = 0
+        self.waveEnd = tde.getWaveEnd(self.waveStart)
+
+        (tmpX, tmpY) = zip(*[(point[0],point[1]) for point in self.wave])
+        bounds = getBoundsCreatePoints(tmpX,tmpY)
+        #insert equation for determining depth from half side and noise level here
+        #what should we do about determining the key bin threshold (expected number of paths?)
+        self.oct = Octree.Octree(8, bounds, 35, 100)
+        start = time.perf_counter()
+        self.oct.createOctree(self.points,True)
+        print(time.perf_counter()-start)
+
+        
+    def initActivityRecognition():
+        self.wave = ss.getPointsFromFile()
+        self.waveLength = len(self.wave)
+        self.waveStart = 0
+        self.waveEnd = tde.getWaveEnd(self.waveStart)
+        [tempx,tempy,self.tauX] = tde.getPhaseData(self.wave,self.waveStart,self.waveEnd)
+        bounds = getBoundsCreatePoints(tempx,tempy)
+        self.oct = Octree.Octree(5,bounds,5,10)
+        start = time.perf_counter()
+        self.oct.createOctree(self.points,True)
+        print(time.perf_counter()-start)
+        
+    def getBoundsCreatePoints(self,x,y):
+        self.maxX = float("-inf")
+        self.maxY = float("-inf")
+        self.minX = float("inf")
+        self.minY = float("inf")
+        prevPt = None
+        for idx in x:
+            x = float(x[0])
+            if math.isnan(x):
+                prevPt = None
+            else:
+                y = float(idx[1])
+                if y>self.maxY:
+                    self.maxY=y
+                if y<self.minY:
+                    self.minY=y
+                if x>self.maxX:
+                    self.maxX=x
+                if x<self.minX:
+                    self.minX=x
+                newPt = ou.getPointObject(x,y,prevPt)
+                if prevPt!=None:
+                    prevPt.setNext(newPt)
+                self.points.append(newPt)
+                self.x.append(x)
+                self.y.append(y)
+                prevPt = newPt
+        midX = (self.maxX + self.minX)/2
+        midY = (self.maxY + self.minY)/2
+        halfSide = max(maxX-midX,maxY-midY)
+        return Bounds.Bounds(self.midX-halfSide,self.midY-halfSide,-1,self.midX+halfSide,self.midY+halfSide,1)
         
     def drawScatter(self):
-        orig = self.ax.scatter(self.x,self.y,color='k')
+        orig = self.ax.scatter(self.x,self.y,color='k',s=1)
         #plt.setp(orig,linewidth=1)
         #old = self.ax.scatter(self.oldX,self.oldY,color='r')
         #plt.setp(old,linewidth=1)
@@ -98,7 +194,7 @@ class Image(object):
         if event.key not in ('n', 'p','k'):
             return
         if event.key == 'n':
-            self.oldX = self.x[:100]
+            """self.oldX = self.x[:100]
             self.oldY = self.y[:100]
             self.newX = np.array(ss.getWindow(self.allx,self.iterationx))
             self.newY = np.array(ss.getWindow(self.ally,self.iterationy))
@@ -107,7 +203,7 @@ class Image(object):
             self.iterationx += 1
             self.iterationy += 1
             newPoints = ou.getPointObjects(self.newX,self.newY)
-            self.oct.appendPoints(newPoints)
+            self.oct.appendPoints(newPoints)"""
             #self.slideWindow(15)
             self.points, isEqual = self.test(self.oct,self.points,newPoints)
         #elif event.key == 'p':
@@ -122,9 +218,7 @@ class Image(object):
                     writer.writerow(point)
         plt.cla()
         plt.axis('equal')
-        self.ax.set_ylim(-1.5,1.5)
-        self.ax.set_xlim(-1.5,1.5)
-        self.drawScatter()
+        #self.drawScatter()
         self.drawOctree()
         np.vectorize(lambda ax:ax.axis('off'))(ax)
         self.fig.canvas.draw()
@@ -154,7 +248,11 @@ class Image(object):
             
             
     def drawOctree(self):
-        binFacts = self.oct.drawBins(self.oct.firstLevel)
+        binFacts, checkExtendedFamily = self.oct.getDualScaleBins(self.oct.firstLevel)
+        shiftFacts = ou.getExtendedFamilyShifts(checkExtendedFamily)
+        if shiftFacts is not None:
+            binFacts.extend(shiftFacts)
+        #binFacts = self.oct.drawBins(self.oct.firstLevel)
         for bounds, intensity, isKey in binFacts:
             #if intensity!=0:
             if intensity>1:
@@ -168,10 +266,10 @@ class Image(object):
             
 
     def test(self,octDyn,pts,newPts):
-        #pts[len(newPts):].extend(newPts)
-        #staticPts = ou.copyPointObjects(pts)
-        #octStatic = Octree.Octree(5,octDyn.bounds)
-        #octStatic.createOctree(staticPts,True)
+        pts[len(newPts):].extend(newPts)
+        staticPts = ou.copyPointObjects(pts)
+        octStatic = Octree.Octree(8, octDyn.bounds, 35, 100)
+        octStatic.createOctree(staticPts,True)
         
 ##        myfig, myax = plt.subplots(1,1)
 ##        plt.cla()
@@ -181,8 +279,8 @@ class Image(object):
 ##        myax.scatter([point.X for point in octDyn.points],[point.Y for point in octDyn.points],color='k')
 ##        plt.show()
         
-        #isEqual = octDyn.compare(octStatic)
-        #print(isEqual)
+        isEqual = octDyn.compare(octStatic)
+        print(isEqual)
         isEqual = True
         return pts, isEqual
     

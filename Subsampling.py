@@ -33,6 +33,14 @@ def getWindowedPoints(subjectId,iteration,testortrain):
             reader = csv.reader(f)
             newStream.extend(list(reader))
         dataStream.append(newStream)
+
+def getMapPoints():
+    dataStream = []
+    for filename in os.listdir('.\\map\\data\\tracks\\tracks_berlin_large\\berlin_large\\trips'):
+        with open('.\\map\\data\\tracks\\tracks_berlin_large\\berlin_large\\trips\\'+filename,'r') as f:
+            reader = csv.reader(f,delimiter=' ')
+            dataStream.extend(list(reader))
+        dataStream.append((-1,-1,-1))
     return dataStream
 
 def getBaseWindow(dim, i):
