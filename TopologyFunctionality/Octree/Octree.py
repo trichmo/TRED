@@ -107,6 +107,8 @@ class Octree(object):
         if self.bounds==[]:
             self.bounds = Bounds(minX,minY,minZ,maxX,maxY,maxZ)
         self.firstLevel = OctreeBin(None, self.points, self.bounds,1,0)
+        for point in points:
+            point.lowestBin = self.firstLevel
         self.initializeSplitting()
 
     def createTrajectories(self,lastPoint,points,isSyncWithBin):
@@ -150,7 +152,8 @@ class Octree(object):
                 checkExtendedFamily.extend(newChecks)
             if keyCt==0 and newBin.depth == self.minDepth-1:
                 if  newBin.trajCt >= self.trajThreshold:
-                    binFacts = [(newBin.bounds, newBin.trajCt/self.trajMax, 1)]
+                    a=1
+                    #binFacts = [(newBin.bounds, newBin.trajCt/self.trajMax, 1)]
                 elif newBin.trajCt > 0:
                     checkExtendedFamily = newBin
             return binFacts, checkExtendedFamily
@@ -168,13 +171,13 @@ class Octree(object):
             return binFacts
 
     def decreaseThreshold(self):
-        self.trajThresh = self.trajThresh - 1
+        self.trajThreshold = self.trajThreshold - 1
         currBin = self.firstLevel
         self.checkNewThreshold(currBin)
 
     def checkNewThreshold(self,currBin):
         if len(currBin.children)==0:
-            if currBin.trajCt >= self.trajThresh:
+            if currBin.trajCt >= self.trajThreshold:
                 self.splitBin(currBin)
         for child in currBin.children:
             self.checkNewThreshold(child)
@@ -195,6 +198,17 @@ class Octree(object):
             for child in newBin.children:
                 keyBins.extend(self.getKdSubsamplePoints(child))
             return keyBins
+            
+    def getLowerLeftBox(self, lower, left, upper, right,newBin = None):
+        if newBin == None:
+            newBin = self.firstLevel
+        if len(newBin.children)==0 and newBin.trajCt >= self.trajThreshold and newBin.depth == self.minDepth:
+            bds = newBin.bounds
+            return min(bds.midY,lower),min(bds.midX,left),max(bds.midY,upper),max(bds.midX,right)
+        else:
+            for child in newBin.children:
+                lower,left,upper,right = self.getLowerLeftBox(lower,left,upper,right,child)
+            return lower,left,upper,right        
 
     def compare(self, compOct):
         myBin = self.firstLevel

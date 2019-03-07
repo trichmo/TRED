@@ -14,20 +14,25 @@ def getPointObjects(x,y,z):
 		pointObjs.append(newObj)
 	return pointObjs
 
-def getPointObjects(x,y):
+def getPointObjects(x,y,z=None):
     pointObjs = []
     lastPt = None
     for idx in range(x.size):
         a=x[idx]
         b=y[idx]
-        newObj = Point(a,b,0,lastPt)
+        if z.any():
+            c=z[idx]
+        else:
+            c=0
+        newObj = Point(a,b,c,lastPt)
         pointObjs.append(newObj)
-        lastPt.setNext(newObj)
+        if lastPt:
+            lastPt.setNext(newObj)
         lastPt = newObj
     return pointObjs
-
-def getPointObject(x,y,prevPt=None):
-    return Point(x,y,0,prevPt)
+    
+def getPointObject(x,y,z,prevPt=None,nextPt=None):
+    return Point(x,y,z,prevPt)
 
 def copyPointObjects(points):
     retPts = []
@@ -78,8 +83,7 @@ def getBin(firstBin, binNos):
     currBin = firstBin
     for binNo in binNos:
         if currBin.children == []:
-            pdb.set_trace()
-        currBin = currBin.children[binNo]
+            currBin = currBin.children[binNo]
     return currBin
 
 def removeTempPt(tempPoint,closestRelative):
@@ -140,7 +144,8 @@ def introduceTrajectory(point1, point2, bin1, bin2):
 def addExtraPointsToBins(point1,point2,extraPts,firstBin):
     for point in extraPts:
         currBin = getLowestBinForPoint(point,firstBin)
-        currBin.addPoint(point)
+        currBin.addPoints([point])
+        point.lowestBin = currBin
         closestRelative = point.findClosestRelative([point1,point2])
         addTraj(closestRelative,point)
 

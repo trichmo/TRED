@@ -3,6 +3,7 @@ from TopologyFunctionality.Octree import Octree as oct
 import csv
 import os
 from math import floor
+import pdb
 import re
 
 def getKdSubsampling(bounds,points):
@@ -26,6 +27,7 @@ def getWindowedPoints(subjectId,iteration,testortrain):
     rootFile = '.\\Data\\Subject' + subjectId + '\\Windows_' + testortrain + '\\It_' +iteration
     unsortedFilenames = os.listdir(rootFile)
     filenames = sorted(unsortedFilenames,key=alphanum_key)
+    #filenames = ['85joint6Window.csv']
     for filename in filenames:
         newStream=[]
         print(filename)
@@ -33,25 +35,53 @@ def getWindowedPoints(subjectId,iteration,testortrain):
             reader = csv.reader(f)
             newStream.extend(list(reader))
         dataStream.append(newStream)
+    return dataStream
 
 def getMapPoints():
     dataStream = []
-    for filename in os.listdir('.\\map\\data\\tracks\\tracks_berlin_large\\berlin_large\\trips'):
-        with open('.\\map\\data\\tracks\\tracks_berlin_large\\berlin_large\\trips\\'+filename,'r') as f:
+    for filename in os.listdir('.\\Data\\map\\data\\tracks\\tracks_athens_small\\athens_small\\trips'):
+        with open('.\\Data\\map\\data\\tracks\\tracks_athens_small\\athens_small\\trips\\'+filename,'r') as f:
+            reader = csv.reader(f,delimiter=' ')
+            pt_list = list(reader)
+            new_list = []
+            last_pt=None
+            for pt in pt_list:
+                x = float(pt[0])
+                y = float(pt[1])
+                append_pts = []
+                if last_pt:
+                    dx = x - last_pt[0]
+                    dy = y - last_pt[1]
+                    for t in [1]:
+                        new_x = dx*t + last_pt[0]
+                        new_y = dy*t + last_pt[1]
+                        append_pts.append([new_x,new_y])
+                else:
+                    append_pts.append([x,y])
+                last_pt = [x,y]
+                new_list.extend(append_pts)
+            new_list.append(last_pt)
+            dataStream.extend(new_list)
+            dataStream.append(('nan','nan','nan'))
+    return dataStream
+    
+def getRoachPoints():
+    dataStream = []
+    for filename in os.listdir('.\\Data\\roach\\'):
+        with open('.\\Data\\roach\\'+filename,'r') as f:
             reader = csv.reader(f,delimiter=' ')
             dataStream.extend(list(reader))
-        dataStream.append((-1,-1,-1))
     return dataStream
 
 def getBaseWindow(dim, i):
-    windowSize = 2000
-    overlap = 1000
+    windowSize = 1000
+    overlap = 500
     newPts = dim[(i*overlap)+windowSize:((i+1)*overlap)+windowSize]
     return newPts
 
 def getWindow(dim, i):
-    windowSize = 2000
-    overlap = 100
+    windowSize = 1000
+    overlap = 500
     newPts = dim[(i*overlap)+windowSize:((i+1)*overlap)+windowSize]
     return newPts
 
