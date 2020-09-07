@@ -24,7 +24,7 @@ def getWindowedPoints(subjectId,iteration,testortrain):
     dataStream = []
     convert = lambda text: int(text) if text.isdigit() else text 
     alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
-    rootFile = '.\\Data\\Subject' + subjectId + '\\Windows_' + testortrain + '\\It_' +iteration
+    rootFile = '.\\Data\\2000\\Subject' + subjectId + '\\Windows_' + testortrain + '\\It_' +iteration
     unsortedFilenames = os.listdir(rootFile)
     filenames = sorted(unsortedFilenames,key=alphanum_key)
     #filenames = ['85joint6Window.csv']
@@ -39,8 +39,8 @@ def getWindowedPoints(subjectId,iteration,testortrain):
 
 def getMapPoints():
     dataStream = []
-    for filename in os.listdir('.\\Data\\map\\data\\tracks\\tracks_athens_small\\athens_small\\trips'):
-        with open('.\\Data\\map\\data\\tracks\\tracks_athens_small\\athens_small\\trips\\'+filename,'r') as f:
+    for filename in os.listdir('.\\Data\\map\\data\\tracks\\tracks_berlin_large\\berlin_large\\trips'):
+        with open('.\\Data\\map\\data\\tracks\\tracks_berlin_large\\berlin_large\\trips\\'+filename,'r') as f:
             reader = csv.reader(f,delimiter=' ')
             pt_list = list(reader)
             new_list = []
@@ -53,8 +53,8 @@ def getMapPoints():
                     dx = x - last_pt[0]
                     dy = y - last_pt[1]
                     for t in [1]:
-                        new_x = dx*t + last_pt[0]
-                        new_y = dy*t + last_pt[1]
+                        new_x = dx*(t) + last_pt[0]
+                        new_y = dy*(t) + last_pt[1]
                         append_pts.append([new_x,new_y])
                 else:
                     append_pts.append([x,y])

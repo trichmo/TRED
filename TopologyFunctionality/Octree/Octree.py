@@ -1,6 +1,7 @@
 from .Bounds import Bounds
 from .OctreeBin import OctreeBin
 from TopologyFunctionality.Helper import OctreeUtil as ou 
+import numpy as np
 import pdb
 
 class Octree(object):
@@ -140,7 +141,7 @@ class Octree(object):
             isKey = 0
             if newBin.depth == self.minDepth and newBin.trajCt >= self.trajThreshold:
                 isKey=1
-            return [(newBin.bounds, newBin.trajCt/self.trajMax, isKey)],[]
+            return [(newBin.bounds, newBin.trajCt, isKey)],[]
         else:
             binFacts = []
             checkExtendedFamily=[]
@@ -231,4 +232,30 @@ class Octree(object):
                 if not temp:
                     return temp
         return True
+        
+    def createKDE(self):
+        s = 2**self.minDepth
+        img = self.getImgQuad(s//2, self.firstLevel, 4)
+        return np.flipud(img)
 
+    def getImgQuad(self, quad_side_len, bin, subt=0):
+        children = bin.children
+        if len(children) == 0:
+            img = np.ones((quad_side_len,quad_side_len), dtype=np.uint32) * bin.trajCt
+            return img
+        half_side_len = quad_side_len//2
+        img0 = self.getImgQuad(half_side_len, children[4-subt])
+        img1 = self.getImgQuad(half_side_len, children[5-subt])
+        img2 = self.getImgQuad(half_side_len, children[6-subt])
+        img3 = self.getImgQuad(half_side_len, children[7-subt])
+        return self.mergeArrays(quad_side_len, img0, img1, img2, img3)
+        
+    def mergeArrays(self, quad_side_len, img0, img1, img2, img3):
+        half_side_len = quad_side_len//2
+        img = np.zeros((quad_side_len, quad_side_len), dtype=np.uint32)
+        img[0:half_side_len, 0:half_side_len] = img0
+        img[half_side_len:quad_side_len, 0:half_side_len] = img1
+        img[0:half_side_len, half_side_len:quad_side_len] = img2
+        img[half_side_len:quad_side_len, half_side_len:quad_side_len] = img3
+        return img
+        

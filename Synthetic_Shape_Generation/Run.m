@@ -7,9 +7,9 @@
 % Date Created: 10/25/2018
 
 % Number of periods (N/2) of the generated curve
-N = 200;
+N = 40;
 % Number of sample points for generation
-n_sample = 100000;
+n_sample = 20000;
 % Whether Randomly pick parameters for noise free curve or not 
 is_random_perturbation = 1;
 % Type of curve
@@ -18,13 +18,13 @@ type = 'circle';
 % Setting parameters for each type of curve
 if strcmp(type, 'eight')
     perturb_theta_range = [1, 3.1];
-    perturb_r_range = [0.02, 0.07];
+    perturb_r_range = [0.05, 0.1];
 elseif strcmp(type, 'peanut')
     perturb_theta_range = [1, 3.1];
-    perturb_r_range = [0.02, 0.07];
+    perturb_r_range = [0.05, 0.1];
 elseif strcmp(type, 'ellipse')
     perturb_theta_range = [1, 3.1];
-    perturb_r_range = [0.02, 0.07];
+    perturb_r_range = [0.05, 0.1];
 else
     perturb_theta_range = [2, 5];
     perturb_r_range = [0.05, 0.1];
@@ -32,11 +32,11 @@ end
 
 % Setting parameters for pulses
 % range of number of pulses for a single circle
-n_pulse_range = [10, 80];
+n_pulse_range = [40, 80];
 % range of pulse standard derivation
-pulse_sigma_range = [20, 30];
+pulse_sigma_range = [40, 120];
 % range of magnitude of pulse
-pulse_magnitude_range = [0.1, 0.5];
+pulse_magnitude_range = [0.1, 0.3];
 
 % Create noise free curve
 [x, y] = fnc_curve_generator(N, n_sample, type);
@@ -60,7 +60,7 @@ for i = 1:200
     % plot(noisedX, noisedY); axis equal;
     % title('Noisy Curve')
     
-    %csvwrite(strcat('C:/Users/trichmo/Data/TRED_Synthetic/',type,'/','GT/',int2str(i),'_perturbed_0.csv'),[noisedX;noisedY]')
+    csvwrite(strcat('C:/Users/trichmo/Data/TRED_Synthetic/',type,'/','GT_40/',int2str(i),'_perturbed_0.csv'),[noisedX;noisedY]')
 end
-%csvwrite(strcat('C:/Users/trichmo/Data/TRED_Synthetic/',type,'/','GT/','/raw_0.csv'),[x;y]')
+csvwrite(strcat('C:/Users/trichmo/Data/TRED_Synthetic/',type,'/','GT_40/','/raw_0.csv'),[x;y]')
 

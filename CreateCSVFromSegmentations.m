@@ -1,6 +1,6 @@
 figure;
 hold on;
-
+tic
 numPoints = 0;
 for i = 1:32
     segmentation = BoundaryList(i).PixelList;
@@ -27,5 +27,6 @@ for i = 1:32
     end
 end
 hold off;
+toc
 
 csvwrite('imgSeg.csv',pixels);

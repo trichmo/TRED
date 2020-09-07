@@ -19,6 +19,7 @@ from scipy import ndimage
 from skimage import morphology
 from skimage import io
 import bisect
+import PIL
 
 class Image(object):
     
@@ -32,6 +33,7 @@ class Image(object):
             self.initMapping()
         elif use == 'activity':
             self.initActivityRecognition(sub_idx)
+            print(self.runtime/self.tot_run)
         elif use == 'misc':
             self.initMisc()
         else:
@@ -39,9 +41,10 @@ class Image(object):
             print('Unknown Use: ')
             print(use)
             return
-        self.visualizePaths()
-        self.drawOctree()      
-        plt.show()
+        self.saveKDE('C:\\Users\\trichmo\\Projects\\PythonTopology\\Data\\map\\kde_imgs\\')
+        #self.visualizePaths()
+        #self.drawOctree()      
+        #plt.show()
     
         
     def initMapping(self):
@@ -53,12 +56,18 @@ class Image(object):
 
         (tmpX, tmpY) = zip(*[(point[0],point[1]) for point in self.wave])
         bounds = self.getBoundsCreatePoints(tmpX,tmpY)
-        binDepth = 8
+        #self.visualizePaths()
+        #plt.show()
+        #return
+        binDepth = 11
         self.preprocessData(bounds,binDepth)
         self.ax.set_xlim([bounds.minX, bounds.maxX])
         self.ax.set_ylim([bounds.minY, bounds.maxY])
-        self.oct = Octree.Octree(binDepth, bounds, 3, 100)
+        self.oct = Octree.Octree(binDepth, bounds, 10, 100)
+        start_time = time.time()
         self.oct.createOctree(self.points,True)
+        print("runtime : {}".format(time.time() - start_time))
+        
         
     def initRoach(self):
         self.wave = ss.getRoachPoints()
@@ -84,19 +93,15 @@ class Image(object):
         self.y = np.array(self.y)
         self.z = np.array(self.z)
         self.points = ou.getPointObjects(self.x,self.y,self.z)
-        binThreshold = 3
+        binThreshold = 2
         bounds = self.getBoundsThree(self.points)
-        self.oct = Octree.Octree(5,bounds,binThreshold,10)
+        self.oct = Octree.Octree(4,bounds,binThreshold,10)
         start = time.perf_counter()
         self.oct.createOctree(self.points,True)
         self.visualizePaths()
         self.drawOctree()
         plt.show()
         sample = self.oct.getKdSubsamplePoints()
-        with open('tau_diff_2000_ss.csv','w',newline='') as outFile:
-            writer = csv.writer(outFile)
-            for point in sample:
-                writer.writerow(point)
         print(time.perf_counter()-start)
         
         
@@ -115,7 +120,7 @@ class Image(object):
                 z.append(currPt.Z)
                 currPt = currPt.nxt
                 currIdx += 1
-            self.ax.plot(x,y,c='k',lw=0.3)
+            self.ax.plot(x,y,c='k',lw=0.3,alpha=0.7)
     
     def preprocessData(self, bounds, binDepth):
         min_dist = max((bounds.maxX - bounds.minX),(bounds.maxY - bounds.minY))/(2**binDepth)
@@ -150,8 +155,10 @@ class Image(object):
                 append_last.setPrev(append_prev)
         
     def initActivityRecognition(self,sub_idx):
-        testortrain = ['test','train']
-        iterations = ['1','2','3','4']
+        #testortrain = ['test','train']
+        testortrain = ['test']
+        #iterations = ['1','2','3','4']
+        iterations = ['1']
         self.runtime = 0
         self.tot_run = 0
         for tot in testortrain:
@@ -173,21 +180,23 @@ class Image(object):
                     binThreshold = math.ceil(1000/len(self.points))
                     binThreshold = min(3,binThreshold)
                     bounds = self.getBoundsThree(self.points)
-                    self.oct = Octree.Octree(5,bounds,binThreshold,10)
+                    self.oct = Octree.Octree(4,bounds,binThreshold,10)
                     start = time.perf_counter()
+                    self.oct.createOctree(self.points,True)
+                    self.runtime += time.perf_counter()-start
                     self.tot_run += 1
-                    sample = self.oct.getKdSubsamplePoints()
-                    while len(sample) < 3 and self.oct.trajThreshold > 1:
-                        self.oct.decreaseThreshold()
-                        sample = self.oct.getKdSubsamplePoints()
-                    if not os.path.exists(saveLocation):
-                        os.makedirs(saveLocation)
-                    with open(saveLocation + 'joint'+str((i%6)+1)+'window'+str((i//6)+1)+'.csv','w',newline='') as outFile:
-                        writer = csv.writer(outFile)
-                        for point in sample:
-                            writer.writerow(point)
-                    i+=1      
-                    plt.cla()
+                    # sample = self.oct.getKdSubsamplePoints()
+                    # while len(sample) < 3 and self.oct.trajThreshold > 1:
+                        # self.oct.decreaseThreshold()
+                        # sample = self.oct.getKdSubsamplePoints()
+                    # if not os.path.exists(saveLocation):
+                        # os.makedirs(saveLocation)
+                    # with open(saveLocation + 'joint'+str((i%6)+1)+'window'+str((i//6)+1)+'.csv','w',newline='') as outFile:
+                        # writer = csv.writer(outFile)
+                        # for point in sample:
+                            # writer.writerow(point)
+                    # i+=1      
+                    # plt.cla()
                     del self.oct                    
         
     def getBoundsThree(self,points):
@@ -245,7 +254,7 @@ class Image(object):
                 prev_pt = newPt
         midX = (self.maxX + self.minX)/2
         midY = (self.maxY + self.minY)/2
-        halfSide = max(self.maxX-midX,self.maxY-midY) * 1.55
+        halfSide = max(self.maxX-midX,self.maxY-midY) * 1.05
         return Bounds.Bounds(midX-halfSide,midY-halfSide,-1,midX+halfSide,midY+halfSide,1)
         
     def drawScatter(self):
@@ -303,9 +312,9 @@ class Image(object):
             binFacts.extend(shiftFacts)
         for bounds, intensity, isKey in binFacts:
             if isKey:
-                self.ax.add_patch(patches.Rectangle((bounds.minX,bounds.minY),bounds.maxX-bounds.minX,bounds.maxY-bounds.minY,alpha=1,color='c',ec='k'))
+                self.ax.add_patch(patches.Rectangle((bounds.minX,bounds.minY),bounds.maxX-bounds.minX,bounds.maxY-bounds.minY,alpha=0.7,color='c',ec='k',zorder=3))
             else:
-                self.ax.add_patch(patches.Rectangle((bounds.minX,bounds.minY),bounds.maxX-bounds.minX,bounds.maxY-bounds.minY,alpha=0.5,color='w',ec='k'))
+                self.ax.add_patch(patches.Rectangle((bounds.minX,bounds.minY),bounds.maxX-bounds.minX,bounds.maxY-bounds.minY,alpha=0.1,color='w',ec='k'))
             
 
     def test(self,octDyn,pts,newPts):
@@ -318,21 +327,34 @@ class Image(object):
         isEqual = True
         return pts, isEqual
         
+    def saveKDE(self, save_loc):
+        np_img = self.oct.createKDE()
+        im = PIL.Image.fromarray(np_img, 'I')
+        im.save(save_loc + 'kde.png')
+        with open(save_loc + 'bbox.txt', 'w') as f:
+            f.write(str(self.oct.bounds.minX) + ' ' + str(self.oct.bounds.minY) + ' ' + str(self.oct.bounds.maxX) + ' ' + str(self.oct.bounds.maxY))
+        
+        
 def runMapping():
+    print('starting')
     fig, ax = plt.subplots(1,1)
     image = Image(fig,ax,'map')
     figFile = 'ex.png'
     plt.savefig(figFile, dpi=1000,bbox_inches='tight',pad_inches=0)
-    return
+    #return
+    
+    start_time = time.time()
     magGrey = io.imread(figFile,as_grey=True)
     bool_img = (magGrey == 0)
     zoomed=bool_img
     skel, distance = morphology.medial_axis(zoomed, return_distance=True)
 
     pruned_skel = morphology.remove_small_objects(skel,8,connectivity=2)
+    print('pruned')
     
     dist_on_skel = distance * pruned_skel
     
+    '''
     fig2, (ax3, ax4) = plt.subplots(1, 2, figsize=(8, 4))
     ax3.imshow(zoomed, cmap=plt.cm.gray, interpolation='nearest')
     ax3.axis('off')
@@ -342,12 +364,9 @@ def runMapping():
     fig2.subplots_adjust(hspace=0.01, wspace=0.01, top=1, bottom=0, left=0, right=1)
     
     plt.show()
+    '''
     
     lowest,leftmost,highest,rightmost = image.oct.getLowerLeftBox(np.inf,np.inf,-np.inf,-np.inf)
-    print(lowest)
-    print(leftmost)
-    print(highest)
-    print(rightmost)
     minX = image.oct.bounds.minX
     minY = image.oct.bounds.minY
     col_len,row_len = np.shape(pruned_skel)
@@ -375,6 +394,7 @@ def runMapping():
     edges = []
     edge_id=0
     node_idxs.sort()
+    print('getting idcs')
     for idx in node_idxs:
         edge_adj = []
         adj_idxs = [idx-1,idx+1,idx-row_len,idx-row_len-1,idx-row_len+1,idx+row_len,idx+row_len-1,idx+row_len+1]
@@ -392,8 +412,12 @@ def runMapping():
         save_writer = csv.writer(save_file)
         for row in edges:
             save_writer.writerow(row)
+            
+    print(time.time() - start_time)
     
+
     
 if __name__ == '__main__':
+    #runMapping()
     fig, ax = plt.subplots(1,1)
-    image = Image(fig,ax,'misc')
+    image = Image(fig,ax,'map')
